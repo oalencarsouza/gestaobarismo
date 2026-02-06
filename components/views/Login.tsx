@@ -60,7 +60,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                             <img src="/logo.svg" alt="Bar Manager Pro Logo" className="h-full w-full object-cover rounded-full drop-shadow-lg" />
                         </div>
                         <h1 className="mb-2 text-center text-3xl font-black text-white tracking-tight leading-tight">
-                            Seja vindo ao <span className="text-orange-500">gestão barismo!</span>
+                            Bem vindo ao <span className="text-orange-500">gestão barismo!</span>
                         </h1>
                         <p className="text-center text-sm text-zinc-400">
                             Entre com suas credenciais para acessar o sistema

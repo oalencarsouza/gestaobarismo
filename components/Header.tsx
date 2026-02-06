@@ -13,7 +13,7 @@ export const Header: React.FC<HeaderProps> = ({ onLogout }) => {
                     <div className="size-8 flex items-center justify-center">
                         <img src="/logo.svg" alt="Bar Manager Pro Logo" className="size-8 object-contain rounded-full" />
                     </div>
-                    <h2 className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Bar Manager Pro</h2>
+                    <h2 className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Gestão Barismo</h2>
                 </div>
             </div>
 

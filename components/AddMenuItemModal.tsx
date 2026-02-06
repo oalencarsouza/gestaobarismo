@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNotification } from '../contexts/NotificationContext';
-import { Loader2, Search } from 'lucide-react';
-import type { Product, MenuItem } from '../types';
+import { Loader2, Search, Filter } from 'lucide-react';
+import type { Product, MenuItem, Category } from '../types';
 
 interface AddMenuItemModalProps {
     isOpen: boolean;
@@ -22,6 +22,8 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
     const [customPrice, setCustomPrice] = useState<string>('');
     const [discountType, setDiscountType] = useState<'none' | 'percent' | 'fixed'>('none');
     const [discountValue, setDiscountValue] = useState<string>('');
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -55,12 +57,20 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
     }, [discountType, discountValue, selectedProduct]);
 
     const fetchProducts = async () => {
-        const { data } = await supabase
-            .from('products')
-            .select('*')
-            .order('name');
+        setLoading(true);
+        try {
+            const [productsRes, categoriesRes] = await Promise.all([
+                supabase.from('products').select('*').eq('is_active', true).order('name'),
+                supabase.from('categories').select('*').order('name')
+            ]);
 
-        if (data) setProducts(data);
+            if (productsRes.data) setProducts(productsRes.data);
+            if (categoriesRes.data) setCategories(categoriesRes.data);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleSelectProduct = (product: Product) => {
@@ -118,9 +128,11 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
         onClose();
     };
 
-    const filteredProducts = products.filter(p =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredProducts = products.filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = !selectedCategoryId || p.category_id === selectedCategoryId;
+        return matchesSearch && matchesCategory;
+    });
 
     if (!isOpen) return null;
 
@@ -149,7 +161,26 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
                                 />
                             </div>
 
-                            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
+                            {/* Category Filter */}
+                            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                                <button
+                                    onClick={() => setSelectedCategoryId(null)}
+                                    className={`flex-none px-4 py-1.5 rounded-full text-xs font-bold transition-all border ${!selectedCategoryId ? 'bg-primary border-primary text-white' : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'}`}
+                                >
+                                    Todas
+                                </button>
+                                {categories.map(cat => (
+                                    <button
+                                        key={cat.id}
+                                        onClick={() => setSelectedCategoryId(cat.id)}
+                                        className={`flex-none px-4 py-1.5 rounded-full text-xs font-bold transition-all border ${selectedCategoryId === cat.id ? 'bg-primary border-primary text-white' : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'}`}
+                                    >
+                                        {cat.name}
+                                    </button>
+                                ))}
+                            </div>
+
+                            <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                                 {filteredProducts.map(product => (
                                     <div
                                         key={product.id}

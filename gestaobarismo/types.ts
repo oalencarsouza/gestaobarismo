@@ -1,0 +1,51 @@
+export interface HistoricalOrder {
+  id: string;
+  time: string;
+  client: string;
+  total: number;
+  status: 'Pago' | 'Aberto' | 'Cancelado';
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  icon?: string;
+  description?: string;
+}
+
+export interface Product {
+  id: string;
+  category_id: string | null;
+  name: string;
+  description?: string;
+  price: number;
+  cost_price?: number;
+  image_url?: string;
+  is_active: boolean;
+  stock?: StockItem; // Joined stock data
+}
+
+export interface StockItem {
+  id: string;
+  product_id: string;
+  quantity: number;
+  min_quantity: number;
+  max_quantity?: number;
+  unit?: string;
+}
+
+export interface Menu {
+  id: string;
+  name: string;
+  description?: string;
+  active: boolean;
+  created_at?: string;
+}
+
+export interface MenuItem {
+  id: string;
+  menu_id: string;
+  product_id: string;
+  price: number;
+  product?: Product;
+}

@@ -258,7 +258,7 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
                     >
                         Cancelar
                     </button>
-                    {selectedProduct && (
+                    {selectedProduct && !editingItem && (
                         <button
                             onClick={handleSubmit}
                             disabled={loading || !customPrice}

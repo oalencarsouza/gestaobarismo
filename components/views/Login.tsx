@@ -56,17 +56,12 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 <div className="overflow-hidden rounded-2xl border border-white/5 bg-[#1a1614]/80 p-8 shadow-2xl backdrop-blur-xl">
                     {/* Logo Section */}
                     <div className="mb-8 flex flex-col items-center">
-                        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-orange-600/10">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-600/20 text-orange-500">
-                                {/* Custom Glass Icon representation */}
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M6 3h12l-2 8H8l-2-8z" />
-                                    <line x1="12" y1="11" x2="12" y2="21" />
-                                    <line x1="8" y1="21" x2="16" y2="21" />
-                                </svg>
-                            </div>
+                        <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-orange-600/10 p-2 border border-orange-600/20 shadow-[0_0_20px_rgba(234,88,12,0.15)]">
+                            <img src="/logo.svg" alt="Bar Manager Pro Logo" className="h-full w-full object-contain drop-shadow-lg" />
                         </div>
-                        <h1 className="mb-2 text-3xl font-bold text-white tracking-tight">Bem-vindo de volta!</h1>
+                        <h1 className="mb-2 text-center text-3xl font-black text-white tracking-tight leading-tight">
+                            Seja vindo ao <span className="text-orange-500">gestão barismo!</span>
+                        </h1>
                         <p className="text-center text-sm text-zinc-400">
                             Entre com suas credenciais para acessar o sistema
                         </p>
@@ -108,11 +103,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                             </div>
                         </div>
 
-                        <div className="flex items-center justify-center">
-                            <button type="button" className="text-sm font-medium text-orange-500 hover:text-orange-400 transition-colors">
-                                Esqueci minha senha
-                            </button>
-                        </div>
 
                         {error && (
                             <div className="text-center text-sm font-medium text-red-500 bg-red-500/10 py-2 rounded-lg border border-red-500/20">

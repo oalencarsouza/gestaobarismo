@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, LogIn } from 'lucide-react';
+import { Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface LoginProps {
@@ -11,11 +11,24 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [fieldErrors, setFieldErrors] = useState<{ username?: string; password?: string }>({});
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
+        setFieldErrors({});
+
+        // Manual validation
+        const newFieldErrors: { username?: string; password?: string } = {};
+        if (!username.trim()) newFieldErrors.username = 'Preencha o usuário';
+        if (!password.trim()) newFieldErrors.password = 'Preencha a senha';
+
+        if (Object.keys(newFieldErrors).length > 0) {
+            setFieldErrors(newFieldErrors);
+            setLoading(false);
+            return;
+        }
 
         try {
             const { data, error: supabaseError } = await supabase
@@ -68,7 +81,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     </div>
 
                     {/* Form */}
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                         <div>
                             <label className="mb-2 block text-sm font-medium text-zinc-300">Usuário</label>
                             <div className="relative group">
@@ -79,10 +92,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                                     type="text"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    className="block w-full rounded-lg border border-white/10 bg-white/5 py-3 pl-10 pr-3 text-white placeholder-zinc-500 transition-all focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                                    className={`block w-full rounded-lg border bg-white/5 py-3 pl-10 pr-3 text-white placeholder-zinc-500 transition-all focus:outline-none focus:ring-1 ${fieldErrors.username ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/50' : 'border-white/10 focus:border-orange-500/50 focus:ring-orange-500/50'}`}
                                     placeholder="admin"
-                                    required
                                 />
+                                {fieldErrors.username && (
+                                    <div className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
+                                        <AlertCircle size={12} />
+                                        {fieldErrors.username}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -96,10 +114,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                                     type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="block w-full rounded-lg border border-white/10 bg-white/5 py-3 pl-10 pr-3 text-white placeholder-zinc-500 transition-all focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50"
+                                    className={`block w-full rounded-lg border bg-white/5 py-3 pl-10 pr-3 text-white placeholder-zinc-500 transition-all focus:outline-none focus:ring-1 ${fieldErrors.password ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/50' : 'border-white/10 focus:border-orange-500/50 focus:ring-orange-500/50'}`}
                                     placeholder="••••••••"
-                                    required
                                 />
+                                {fieldErrors.password && (
+                                    <div className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">
+                                        <AlertCircle size={12} />
+                                        {fieldErrors.password}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -126,7 +149,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
                     {/* Footer Card */}
                     <div className="mt-8 text-center text-[10px] uppercase tracking-widest text-zinc-600">
-                        © 2024 BARSYSTEM ADMIN • GESTÃO PROFISSIONAL
+                        © 2026 BARSYSTEM ADMIN • GESTÃO PROFISSIONAL
                     </div>
                 </div>
 

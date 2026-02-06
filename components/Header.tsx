@@ -9,7 +9,7 @@ export const Header: React.FC = () => {
             <div className="flex items-center gap-8">
                 <div className="flex items-center gap-4 text-primary">
                     <div className="size-8 flex items-center justify-center">
-                        <img src="/logo.svg" alt="Bar Manager Pro Logo" className="size-8 object-contain" />
+                        <img src="/logo.svg" alt="Bar Manager Pro Logo" className="size-8 object-contain rounded-full" />
                     </div>
                     <h2 className="text-white text-lg font-bold leading-tight tracking-[-0.015em]">Bar Manager Pro</h2>
                 </div>

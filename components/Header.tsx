@@ -1,9 +1,11 @@
-
 import React from 'react';
+import { LogOut } from 'lucide-react';
 
+interface HeaderProps {
+    onLogout?: () => void;
+}
 
-
-export const Header: React.FC = () => {
+export const Header: React.FC<HeaderProps> = ({ onLogout }) => {
     return (
         <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-white/10 px-10 py-3 bg-background-dark sticky top-0 z-50">
             <div className="flex items-center gap-8">
@@ -31,8 +33,18 @@ export const Header: React.FC = () => {
                 <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-gray-400 hover:text-white cursor-pointer">notifications</span>
                     <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary/50" style={{ backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuCTbfP_p1L1zxpz_kNqKIDuLssxrv5Rh7G6sFUannOIZBg8mKUvPcLVNXVzy3ZMg3ZS9L5txL3GKoB9_Tk7oBNC28s9dUNY-4NYkxL1Ykt7Hfm-HSoaYUU8jpaaGwmBTT8mJpmdz0NE2Ktx6vEpyG2Fcx1WUpfnUUTPA4mcUcIy_lzJkr_DfqkniWuXvW9XVoGtCbuF7taHz414kO6yz_ewgjowPBLB2p8QjyLTNaiHjotQXFquSzeawDXM2AfW0PyFBwv9VbJZWpk")` }}></div>
+                    {onLogout && (
+                        <button
+                            onClick={onLogout}
+                            className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm font-medium text-zinc-400 transition-all hover:bg-red-500/10 hover:text-red-500"
+                            title="Sair"
+                        >
+                            <LogOut size={18} />
+                        </button>
+                    )}
                 </div>
             </div>
+
         </header >
     );
 };

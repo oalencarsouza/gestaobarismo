@@ -9,6 +9,7 @@ import { AddStockModal } from '../AddStockModal';
 import { useNotification } from '../../contexts/NotificationContext';
 import type { Product, Category } from '../../types';
 import { Search, PlusCircle, Edit2, Trash2, Loader2, ChevronLeft, ChevronRight, PackagePlus } from 'lucide-react';
+import { getUniqueCategories } from '../../lib/data-utils';
 
 type StockFilterStatus = 'all' | 'in_stock' | 'low_stock' | 'out_of_stock';
 
@@ -51,7 +52,7 @@ export const Stock: React.FC = () => {
                 .order('name');
 
             if (catError) throw catError;
-            setCategories(cats || []);
+            setCategories(getUniqueCategories(cats || []));
 
             // Fetch products with stock
             const { data: prods, error: prodError } = await supabase
@@ -332,7 +333,7 @@ export const Stock: React.FC = () => {
                 </div>
 
                 <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
-                    {['Todos', ...Array.from(new Set(categories.map(c => c.name)))].map(category => (
+                    {['Todos', ...categories.map(c => c.name)].map(category => (
                         <button
                             key={category}
                             onClick={() => setSelectedCategory(category)}

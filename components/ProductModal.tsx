@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { Product, Category } from '../types';
+import { getUniqueCategories } from '../lib/data-utils';
 
 interface ProductModalProps {
     isOpen: boolean;
@@ -54,14 +55,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         }
     }, [initialData, categories, isOpen]);
 
-    const uniqueCategories = categories.reduce((acc, current) => {
-        const x = acc.find(item => item.name === current.name);
-        if (!x) {
-            return acc.concat([current]);
-        } else {
-            return acc;
-        }
-    }, [] as Category[]);
+    const uniqueCategories = getUniqueCategories(categories);
 
     if (!isOpen) return null;
 

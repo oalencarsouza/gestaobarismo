@@ -2,8 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNotification } from '../contexts/NotificationContext';
-import { Loader2, Search, Filter } from 'lucide-react';
+import { Filter, Search, Loader2 } from 'lucide-react';
 import type { Product, MenuItem, Category } from '../types';
+import { getUniqueCategories } from '../lib/data-utils';
 
 interface AddMenuItemModalProps {
     isOpen: boolean;
@@ -65,7 +66,7 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
             ]);
 
             if (productsRes.data) setProducts(productsRes.data);
-            if (categoriesRes.data) setCategories(categoriesRes.data);
+            if (categoriesRes.data) setCategories(getUniqueCategories(categoriesRes.data));
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {

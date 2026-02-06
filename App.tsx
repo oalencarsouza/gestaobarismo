@@ -8,12 +8,13 @@ import { Dashboard } from './components/views/Dashboard';
 import { Stock } from './components/views/Stock';
 import { MenuView } from './components/views/Menu';
 import { Reports } from './components/views/Reports';
+import { OrderView } from './components/views/OrderView';
 import { Login } from './components/views/Login';
 import { Sidebar } from './components/Sidebar';
 
 import { NotificationProvider } from './contexts/NotificationContext';
 
-export type View = 'history' | 'profile' | 'events' | 'dashboard' | 'stock' | 'reports' | 'menu';
+export type View = 'history' | 'profile' | 'events' | 'dashboard' | 'stock' | 'reports' | 'menu' | 'orders';
 
 const App: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
@@ -52,6 +53,8 @@ const App: React.FC = () => {
                 return <Profile />;
             case 'events':
                 return <Events />;
+            case 'orders':
+                return <OrderView />;
             default:
                 return <Dashboard setView={setView} />;
         }

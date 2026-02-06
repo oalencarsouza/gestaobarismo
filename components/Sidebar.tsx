@@ -41,6 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     subtitle = 'Painel do Administrador'
 }) => {
     const menuItems: SidebarItem[] = [
+        { icon: 'shopping_cart', label: 'Pedidos', viewName: 'orders' },
         { icon: 'dashboard', label: 'Visão Geral', viewName: 'dashboard' },
         { icon: 'history', label: 'Histórico de Pedidos', viewName: 'history' },
         { icon: 'restaurant_menu', label: 'Cardápio', viewName: 'menu' },

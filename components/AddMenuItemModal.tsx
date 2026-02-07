@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNotification } from '../contexts/NotificationContext';
-import { Filter, Search, Loader2 } from 'lucide-react';
+import { Filter, Search, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Product, MenuItem, Category } from '../types';
 import { getUniqueCategories } from '../lib/data-utils';
 
@@ -26,6 +26,7 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
     const [categories, setCategories] = useState<Category[]>([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const [showResults, setShowResults] = useState(false);
+    const [filterStartIndex, setFilterStartIndex] = useState(0);
 
     useEffect(() => {
         if (isOpen) {
@@ -83,6 +84,13 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
     };
 
     const handleSelectCategory = (categoryId: string | null) => {
+        const allFilters = [{ id: null, name: 'Todas' }, ...categories];
+        const index = allFilters.findIndex(f => (f.id === categoryId) || (f.id === null && categoryId === null));
+
+        // Try to center the selected category or at least make it visible
+        const newStart = Math.max(0, Math.min(allFilters.length - 3, index));
+        setFilterStartIndex(newStart);
+
         setSelectedCategoryId(categoryId);
         setShowResults(true);
         setSearchTerm('');
@@ -212,23 +220,35 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
                                         </div>
                                     </div>
 
-                                    {/* Category Filter Pills (mini) */}
-                                    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                                    {/* Category Filter Pills (Limited to 3 with arrows) */}
+                                    <div className="flex items-center gap-2 py-1">
                                         <button
-                                            onClick={() => setSelectedCategoryId(null)}
-                                            className={`flex-none px-4 py-1.5 rounded-full text-[10px] uppercase tracking-wider font-black transition-all border ${!selectedCategoryId ? 'bg-primary border-primary text-white' : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/20'}`}
+                                            disabled={filterStartIndex === 0}
+                                            onClick={() => setFilterStartIndex(prev => Math.max(0, prev - 1))}
+                                            className="p-1.5 rounded-full bg-white/5 border border-white/10 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                                         >
-                                            Todas
+                                            <ChevronLeft size={16} />
                                         </button>
-                                        {categories.map(cat => (
-                                            <button
-                                                key={cat.id}
-                                                onClick={() => setSelectedCategoryId(cat.id)}
-                                                className={`flex-none px-4 py-1.5 rounded-full text-[10px] uppercase tracking-wider font-black transition-all border ${selectedCategoryId === cat.id ? 'bg-primary border-primary text-white' : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/20'}`}
-                                            >
-                                                {cat.name}
-                                            </button>
-                                        ))}
+
+                                        <div className="flex-1 flex gap-2 overflow-hidden">
+                                            {[{ id: null, name: 'Todas' }, ...categories].slice(filterStartIndex, filterStartIndex + 3).map(cat => (
+                                                <button
+                                                    key={cat.id ?? 'all'}
+                                                    onClick={() => setSelectedCategoryId(cat.id)}
+                                                    className={`flex-1 px-4 py-2 rounded-lg text-[10px] uppercase tracking-wider font-black transition-all border whitespace-nowrap truncate ${selectedCategoryId === cat.id ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/20'}`}
+                                                >
+                                                    {cat.name}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <button
+                                            disabled={filterStartIndex >= ([{ id: null, name: 'Todas' }, ...categories].length - 3)}
+                                            onClick={() => setFilterStartIndex(prev => Math.min(([{ id: null, name: 'Todas' }, ...categories].length - 3), prev + 1))}
+                                            className="p-1.5 rounded-full bg-white/5 border border-white/10 text-gray-500 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                                        >
+                                            <ChevronRight size={16} />
+                                        </button>
                                     </div>
 
                                     <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar animate-in slide-in-from-bottom-2 duration-300">

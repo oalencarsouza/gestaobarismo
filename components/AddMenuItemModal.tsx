@@ -163,42 +163,58 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
                             {!showResults ? (
                                 <div className="space-y-6 py-4">
                                     <p className="text-gray-400 text-sm font-medium text-center">Selecione uma categoria para começar</p>
-                                    <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto">
-                                        {/* Left Column (3 items) */}
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {/* Column 1 (3 items) */}
                                         <div className="space-y-3">
                                             <button
                                                 onClick={() => handleSelectCategory(null)}
-                                                className={`w-full p-4 rounded-xl border transition-all text-sm font-bold flex flex-col items-center justify-center gap-2 aspect-square ${!selectedCategoryId ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white/5 border-white/10 text-gray-400 hover:border-primary/30'}`}
+                                                className={`w-full p-3 rounded-xl border transition-all text-[10px] uppercase tracking-tighter font-black h-24 flex flex-col items-center justify-center gap-1 ${!selectedCategoryId ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white/5 border-white/10 text-gray-400 hover:border-primary/30'}`}
                                             >
-                                                <Filter size={24} />
+                                                <Filter size={20} />
                                                 Todas
                                             </button>
                                             {categories.slice(0, 2).map((cat) => (
                                                 <button
                                                     key={cat.id}
                                                     onClick={() => handleSelectCategory(cat.id)}
-                                                    className="w-full p-4 rounded-xl border bg-white/5 border-white/10 text-gray-400 hover:border-primary/30 transition-all text-sm font-bold flex flex-col items-center justify-center gap-2 aspect-square"
+                                                    className="w-full p-3 rounded-xl border bg-white/5 border-white/10 text-gray-400 hover:border-primary/30 transition-all text-[10px] uppercase tracking-tighter font-black h-24 flex flex-col items-center justify-center gap-1"
                                                 >
-                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px]">
                                                         {cat.name.charAt(0).toUpperCase()}
                                                     </div>
-                                                    {cat.name}
+                                                    <span className="truncate w-full px-1">{cat.name}</span>
                                                 </button>
                                             ))}
                                         </div>
 
-                                        {/* Right Column (4 items) */}
+                                        {/* Column 2 (3 items) */}
                                         <div className="space-y-3">
-                                            {categories.slice(2, 6).map((cat) => (
+                                            {categories.slice(2, 5).map((cat) => (
                                                 <button
                                                     key={cat.id}
                                                     onClick={() => handleSelectCategory(cat.id)}
-                                                    className="w-full p-4 rounded-xl border bg-white/5 border-white/10 text-gray-400 hover:border-primary/30 transition-all text-sm font-bold flex flex-col items-center justify-center gap-2 aspect-square"
+                                                    className="w-full p-3 rounded-xl border bg-white/5 border-white/10 text-gray-400 hover:border-primary/30 transition-all text-[10px] uppercase tracking-tighter font-black h-24 flex flex-col items-center justify-center gap-1"
                                                 >
-                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px]">
                                                         {cat.name.charAt(0).toUpperCase()}
                                                     </div>
-                                                    {cat.name}
+                                                    <span className="truncate w-full px-1">{cat.name}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Column 3 (Max 3 items) */}
+                                        <div className="space-y-3">
+                                            {categories.slice(5, 8).map((cat) => (
+                                                <button
+                                                    key={cat.id}
+                                                    onClick={() => handleSelectCategory(cat.id)}
+                                                    className="w-full p-3 rounded-xl border bg-white/5 border-white/10 text-gray-400 hover:border-primary/30 transition-all text-[10px] uppercase tracking-tighter font-black h-24 flex flex-col items-center justify-center gap-1"
+                                                >
+                                                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px]">
+                                                        {cat.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    <span className="truncate w-full px-1">{cat.name}</span>
                                                 </button>
                                             ))}
                                         </div>

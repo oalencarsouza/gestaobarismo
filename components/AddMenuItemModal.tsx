@@ -156,14 +156,14 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-[#1e140f] rounded-xl shadow-2xl w-full max-w-2xl border border-white/10 max-h-[90vh] flex flex-col overflow-hidden">
-                <div className="p-6 border-b border-white/10">
+            <div className="bg-[#1e140f] rounded-xl shadow-2xl w-full max-w-2xl border border-white/10 max-h-[92vh] flex flex-col overflow-hidden">
+                <div className="p-4 border-b border-white/10">
                     <h2 className="text-xl font-bold text-white">
                         {editingItem ? 'Editar Item do Cardápio' : 'Adicionar Item ao Cardápio'}
                     </h2>
                 </div>
 
-                <div className="p-6 flex-1 overflow-y-auto space-y-6">
+                <div className="p-5 flex-1 overflow-y-auto space-y-5 scrollbar-none">
                     {/* Product Selection */}
                     {/* Product Selection */}
                     {!selectedProduct ? (
@@ -251,7 +251,7 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
                                         </button>
                                     </div>
 
-                                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar animate-in slide-in-from-bottom-2 duration-300">
+                                    <div className="space-y-2 animate-in slide-in-from-bottom-2 duration-300">
                                         {filteredProducts.map(product => (
                                             <div
                                                 key={product.id}
@@ -360,7 +360,7 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
                     )}
                 </div>
 
-                <div className="p-6 border-t border-white/10 flex justify-end gap-3">
+                <div className="p-4 border-t border-white/10 flex justify-end gap-3">
                     <button
                         onClick={handleClose}
                         className="px-4 py-2 text-gray-400 hover:text-white transition-colors"

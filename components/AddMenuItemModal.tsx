@@ -25,6 +25,7 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
     const [discountValue, setDiscountValue] = useState<string>('');
     const [categories, setCategories] = useState<Category[]>([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+    const [showResults, setShowResults] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
@@ -81,6 +82,12 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
         setDiscountValue('');
     };
 
+    const handleSelectCategory = (categoryId: string | null) => {
+        setSelectedCategoryId(categoryId);
+        setShowResults(true);
+        setSearchTerm('');
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedProduct) return;
@@ -126,6 +133,8 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
         setDiscountType('none');
         setDiscountValue('');
         setSearchTerm('');
+        setSelectedCategoryId(null);
+        setShowResults(false);
         onClose();
     };
 
@@ -148,51 +157,113 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
 
                 <div className="p-6 flex-1 overflow-y-auto space-y-6">
                     {/* Product Selection */}
+                    {/* Product Selection */}
                     {!selectedProduct ? (
                         <div className="space-y-4">
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
-                                <input
-                                    type="text"
-                                    placeholder="Buscar produto..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-3 text-white focus:ring-2 focus:ring-primary outline-none"
-                                    autoFocus
-                                />
-                            </div>
+                            {!showResults ? (
+                                <div className="space-y-6 py-4">
+                                    <p className="text-gray-400 text-sm font-medium text-center">Selecione uma categoria para começar</p>
+                                    <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto">
+                                        {/* Left Column (3 items) */}
+                                        <div className="space-y-3">
+                                            <button
+                                                onClick={() => handleSelectCategory(null)}
+                                                className={`w-full p-4 rounded-xl border transition-all text-sm font-bold flex flex-col items-center justify-center gap-2 aspect-square ${!selectedCategoryId ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white/5 border-white/10 text-gray-400 hover:border-primary/30'}`}
+                                            >
+                                                <Filter size={24} />
+                                                Todas
+                                            </button>
+                                            {categories.slice(0, 2).map((cat) => (
+                                                <button
+                                                    key={cat.id}
+                                                    onClick={() => handleSelectCategory(cat.id)}
+                                                    className="w-full p-4 rounded-xl border bg-white/5 border-white/10 text-gray-400 hover:border-primary/30 transition-all text-sm font-bold flex flex-col items-center justify-center gap-2 aspect-square"
+                                                >
+                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                                        {cat.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    {cat.name}
+                                                </button>
+                                            ))}
+                                        </div>
 
-                            {/* Category Filter */}
-                            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                                <button
-                                    onClick={() => setSelectedCategoryId(null)}
-                                    className={`flex-none px-4 py-1.5 rounded-full text-xs font-bold transition-all border ${!selectedCategoryId ? 'bg-primary border-primary text-white' : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'}`}
-                                >
-                                    Todas
-                                </button>
-                                {categories.map(cat => (
-                                    <button
-                                        key={cat.id}
-                                        onClick={() => setSelectedCategoryId(cat.id)}
-                                        className={`flex-none px-4 py-1.5 rounded-full text-xs font-bold transition-all border ${selectedCategoryId === cat.id ? 'bg-primary border-primary text-white' : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'}`}
-                                    >
-                                        {cat.name}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                                {filteredProducts.map(product => (
-                                    <div
-                                        key={product.id}
-                                        onClick={() => handleSelectProduct(product)}
-                                        className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors border border-transparent hover:border-primary/30"
-                                    >
-                                        <span className="text-white font-medium">{product.name}</span>
-                                        <span className="text-primary font-bold font-numbers">R$ {product.price.toFixed(2)}</span>
+                                        {/* Right Column (4 items) */}
+                                        <div className="space-y-3">
+                                            {categories.slice(2, 6).map((cat) => (
+                                                <button
+                                                    key={cat.id}
+                                                    onClick={() => handleSelectCategory(cat.id)}
+                                                    className="w-full p-4 rounded-xl border bg-white/5 border-white/10 text-gray-400 hover:border-primary/30 transition-all text-sm font-bold flex flex-col items-center justify-center gap-2 aspect-square"
+                                                >
+                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                                        {cat.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                    {cat.name}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => setShowResults(false)}
+                                            className="p-2 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white transition-colors"
+                                        >
+                                            <Filter size={18} />
+                                        </button>
+                                        <div className="relative flex-1">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
+                                            <input
+                                                type="text"
+                                                placeholder="Buscar produto..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-3 text-white focus:ring-2 focus:ring-primary outline-none"
+                                                autoFocus
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Category Filter Pills (mini) */}
+                                    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                                        <button
+                                            onClick={() => setSelectedCategoryId(null)}
+                                            className={`flex-none px-4 py-1.5 rounded-full text-[10px] uppercase tracking-wider font-black transition-all border ${!selectedCategoryId ? 'bg-primary border-primary text-white' : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/20'}`}
+                                        >
+                                            Todas
+                                        </button>
+                                        {categories.map(cat => (
+                                            <button
+                                                key={cat.id}
+                                                onClick={() => setSelectedCategoryId(cat.id)}
+                                                className={`flex-none px-4 py-1.5 rounded-full text-[10px] uppercase tracking-wider font-black transition-all border ${selectedCategoryId === cat.id ? 'bg-primary border-primary text-white' : 'bg-white/5 border-white/10 text-gray-500 hover:border-white/20'}`}
+                                            >
+                                                {cat.name}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar animate-in slide-in-from-bottom-2 duration-300">
+                                        {filteredProducts.map(product => (
+                                            <div
+                                                key={product.id}
+                                                onClick={() => handleSelectProduct(product)}
+                                                className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 cursor-pointer transition-colors border border-transparent hover:border-primary/30"
+                                            >
+                                                <span className="text-white font-medium">{product.name}</span>
+                                                <span className="text-primary font-bold font-numbers">R$ {product.price.toFixed(2)}</span>
+                                            </div>
+                                        ))}
+                                        {filteredProducts.length === 0 && (
+                                            <div className="text-center py-8 text-gray-500">
+                                                Nenhum produto encontrado nesta categoria.
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <div className="space-y-6">

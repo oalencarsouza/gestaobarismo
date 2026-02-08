@@ -32,10 +32,18 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
         if (isOpen) {
             fetchProducts();
             if (editingItem) {
-                setSelectedProduct(editingItem.product || null);
+                const product = editingItem.product;
+                setSelectedProduct(product || null);
                 setCustomPrice(editingItem.price.toString());
-                setDiscountType('none');
-                setDiscountValue('');
+
+                // Se o preço for diferente do original, interpretamos como desconto fixo no estado local
+                if (product && editingItem.price !== product.price) {
+                    setDiscountType('fixed');
+                    setDiscountValue((product.price - editingItem.price).toFixed(2));
+                } else {
+                    setDiscountType('none');
+                    setDiscountValue('');
+                }
             }
         }
     }, [isOpen, editingItem]);
@@ -54,7 +62,10 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
             newPrice = originalPrice - val;
         }
 
-        if (discountType !== 'none') {
+        // Se o tipo for 'none', forçamos o preço original e não permitimos edição manual
+        if (discountType === 'none') {
+            setCustomPrice(originalPrice.toFixed(2));
+        } else {
             setCustomPrice(Math.max(0, newPrice).toFixed(2));
         }
     }, [discountType, discountValue, selectedProduct]);
@@ -338,22 +349,31 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({ isOpen, onCl
                                 <label className="block text-sm font-medium text-gray-400 mb-2">
                                     Preço no Cardápio (Final)
                                 </label>
-                                <div className="relative group">
+                                <div className={`relative group ${discountType === 'none' ? 'opacity-60' : ''}`}>
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-bold text-xl select-none">R$</span>
                                     <input
                                         type="number"
                                         step="0.01"
                                         required
                                         value={customPrice}
+                                        disabled={discountType === 'none'}
                                         onChange={(e) => {
-                                            setCustomPrice(e.target.value);
-                                            setDiscountType('none'); // Reset discount logic on manual change
+                                            const val = e.target.value;
+                                            setCustomPrice(val);
+
+                                            // Atualiza o valor do desconto se estiver em modo 'fixed'
+                                            if (discountType === 'fixed' && selectedProduct) {
+                                                const deduction = selectedProduct.price - parseFloat(val);
+                                                setDiscountValue(isNaN(deduction) ? '' : deduction.toFixed(2));
+                                            }
                                         }}
-                                        className="w-full bg-white/5 border-2 border-primary/30 group-hover:border-primary rounded-xl pl-12 pr-4 py-4 text-white text-2xl font-black font-numbers focus:ring-4 focus:ring-primary/20 outline-none transition-all shadow-inner"
+                                        className={`w-full bg-white/5 border-2 ${discountType === 'none' ? 'border-primary/10' : 'border-primary/30 group-hover:border-primary'} rounded-xl pl-12 pr-4 py-4 text-white text-2xl font-black font-numbers focus:ring-4 focus:ring-primary/20 outline-none transition-all shadow-inner ${discountType === 'none' ? 'cursor-not-allowed' : ''}`}
                                     />
                                 </div>
                                 <p className="text-xs text-gray-500 mt-2">
-                                    Você pode ajustar o preço final livremente acima.
+                                    {discountType === 'none'
+                                        ? "O preço final é o preço original do produto. Selecione um tipo de desconto para ajustar."
+                                        : "Você pode ajustar o preço final livremente acima."}
                                 </p>
                             </div>
                         </div>

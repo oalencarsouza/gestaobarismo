@@ -1,4 +1,4 @@
-import type { Category } from './types';
+import type { Category } from '../types';
 
 /**
  * Removes duplicate categories from a list based on their name.

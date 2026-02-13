@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { CreateMenuModal } from '../CreateMenuModal';
 import { AddMenuItemModal } from '../AddMenuItemModal';
 import { useNotification } from '../../contexts/NotificationContext';
-import { PlusCircle, Search, ChevronLeft, Trash2, LayoutGrid, Loader2, Pencil, Coffee, Percent, Copy, Sparkles } from 'lucide-react';
+import { PlusCircle, Search, ChevronLeft, Trash2, LayoutGrid, Loader2, Pencil, Coffee, Percent, Copy, Sparkles, X } from 'lucide-react';
 import type { Menu, MenuItem, MenuType } from '../../types';
 
 const TYPE_CONFIG: Record<MenuType, { label: string; color: string; icon: React.ReactNode }> = {
@@ -21,8 +22,13 @@ export const MenuView: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
+    // Edit Mode State
+    const [isEditMode, setIsEditMode] = useState(false);
+
     // Modal States
     const [isCreateMenuModalOpen, setIsCreateMenuModalOpen] = useState(false);
+    const [menuToEdit, setMenuToEdit] = useState<Menu | null>(null);
+
     const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
     const [itemToEdit, setItemToEdit] = useState<MenuItem | null>(null);
 
@@ -66,6 +72,38 @@ export const MenuView: React.FC = () => {
         } catch (error) {
             console.error('Erro ao buscar itens:', error);
             showError('Não foi possível carregar os itens do cardápio.');
+        }
+    };
+
+    const handleDeleteMenu = async (menu: Menu, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!confirm(`Tem certeza que deseja excluir o cardápio "${menu.name}"? Esta ação não pode ser desfeita e excluirá todos os itens associados.`)) return;
+
+        try {
+            const { error } = await supabase
+                .from('menus')
+                .delete()
+                .eq('id', menu.id);
+
+            if (error) throw error;
+
+            setMenus(prev => prev.filter(m => m.id !== menu.id));
+            if (selectedMenu?.id === menu.id) setSelectedMenu(null);
+            showSuccess('Cardápio excluído com sucesso!');
+        } catch (error) {
+            console.error('Erro ao excluir cardápio:', error);
+            showError('Erro ao excluir o cardápio.');
+        }
+    };
+
+    const handleMenuClick = (menu: Menu) => {
+        if (isEditMode) {
+            // In Edit Mode, clicking the card opens the Edit Modal
+            setMenuToEdit(menu);
+            setIsCreateMenuModalOpen(true);
+        } else {
+            // Normal Mode, open details
+            setSelectedMenu(menu);
         }
     };
 
@@ -161,6 +199,7 @@ export const MenuView: React.FC = () => {
                             className="bg-transparent border-none focus:ring-0 text-white placeholder:text-gray-500 flex-1 outline-none"
                         />
                     </div>
+
                     {selectedMenu ? (
                         <button
                             onClick={() => setIsAddItemModalOpen(true)}
@@ -170,13 +209,30 @@ export const MenuView: React.FC = () => {
                             Adicionar Item
                         </button>
                     ) : (
-                        <button
-                            onClick={() => setIsCreateMenuModalOpen(true)}
-                            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all whitespace-nowrap"
-                        >
-                            <PlusCircle size={20} />
-                            Novo Cardápio
-                        </button>
+                        <div className="flex gap-2">
+                            {/* Edit Mode Toggle */}
+                            <button
+                                onClick={() => setIsEditMode(!isEditMode)}
+                                className={`p-3 rounded-lg border transition-all ${isEditMode
+                                        ? 'bg-red-500/10 border-red-500/50 text-red-500'
+                                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+                                    }`}
+                                title={isEditMode ? "Sair do modo de edição" : "Editar/Excluir cardápios"}
+                            >
+                                {isEditMode ? <X size={20} /> : <Pencil size={20} />}
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    setMenuToEdit(null);
+                                    setIsCreateMenuModalOpen(true);
+                                }}
+                                className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all whitespace-nowrap"
+                            >
+                                <PlusCircle size={20} />
+                                Novo Cardápio
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
@@ -191,19 +247,41 @@ export const MenuView: React.FC = () => {
                     {filteredMenus.map(menu => (
                         <div
                             key={menu.id}
-                            onClick={() => setSelectedMenu(menu)}
-                            className="group p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/50 transition-all cursor-pointer relative overflow-hidden"
+                            onClick={() => handleMenuClick(menu)}
+                            className={`group p-6 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${isEditMode
+                                    ? 'bg-white/5 border-primary/50 hover:bg-primary/5'
+                                    : 'bg-white/5 border-white/10 hover:border-primary/50'
+                                }`}
                         >
-                            <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-100 transition-opacity">
-                                <LayoutGrid className="text-primary" size={24} />
+                            {/* Icon Indicator: LayoutGrid (Normal) vs Trash2 (Edit Mode) */}
+                            <div className="absolute top-0 right-0 p-4 transition-all z-10">
+                                {isEditMode ? (
+                                    <button
+                                        onClick={(e) => handleDeleteMenu(menu, e)}
+                                        className="p-2 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-lg"
+                                        title="Excluir Cardápio"
+                                    >
+                                        <Trash2 size={20} />
+                                    </button>
+                                ) : (
+                                    <LayoutGrid className="text-primary opacity-20 group-hover:opacity-100 transition-opacity" size={24} />
+                                )}
                             </div>
-                            <div className="flex items-center gap-2 mb-2">
-                                <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">{menu.name}</h3>
+
+                            <div className="flex items-center gap-2 mb-2 pr-12">
+                                <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors truncate w-full">
+                                    {menu.name}
+                                </h3>
                             </div>
-                            <p className="text-gray-400 text-sm line-clamp-2 mb-3">{menu.description || 'Sem descrição.'}</p>
+
+                            <p className="text-gray-400 text-sm line-clamp-2 mb-3 h-10">
+                                {menu.description || 'Sem descrição.'}
+                            </p>
+
                             <div className="mb-3">
                                 {getTypeBadge(menu)}
                             </div>
+
                             <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
                                 <span className={menu.active ? 'text-green-500' : 'text-gray-500'}>
                                     {menu.active ? 'Ativo' : 'Inativo'}
@@ -212,6 +290,13 @@ export const MenuView: React.FC = () => {
                                     {new Date(menu.created_at || '').toLocaleDateString('pt-BR')}
                                 </span>
                             </div>
+
+                            {/* Edit Mode Overlay Hint */}
+                            {isEditMode && (
+                                <div className="absolute inset-x-0 bottom-0 bg-primary/10 py-1 text-center text-xs font-bold text-primary border-t border-primary/20">
+                                    Clique para editar
+                                </div>
+                            )}
                         </div>
                     ))}
                     {filteredMenus.length === 0 && (
@@ -310,8 +395,12 @@ export const MenuView: React.FC = () => {
             {/* Modals */}
             <CreateMenuModal
                 isOpen={isCreateMenuModalOpen}
-                onClose={() => setIsCreateMenuModalOpen(false)}
+                onClose={() => {
+                    setIsCreateMenuModalOpen(false);
+                    setMenuToEdit(null);
+                }}
                 onSuccess={fetchMenus}
+                menuToEdit={menuToEdit}
             />
             {selectedMenu && (
                 <AddMenuItemModal

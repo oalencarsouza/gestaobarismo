@@ -1,14 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNotification } from '../contexts/NotificationContext';
 import { Loader2, Coffee, Percent, Copy, Sparkles } from 'lucide-react';
-import type { MenuType } from '../types';
+import type { Menu, MenuType } from '../types';
 
 interface CreateMenuModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    menuToEdit?: Menu | null;
 }
 
 const MENU_TYPES: { value: MenuType; label: string; description: string; icon: React.ReactNode; color: string }[] = [
@@ -49,7 +50,7 @@ const colorMap: Record<string, { bg: string; border: string; text: string; ring:
     purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/50', text: 'text-purple-400', ring: 'ring-purple-500/30' },
 };
 
-export const CreateMenuModal: React.FC<CreateMenuModalProps> = ({ isOpen, onClose, onSuccess }) => {
+export const CreateMenuModal: React.FC<CreateMenuModalProps> = ({ isOpen, onClose, onSuccess, menuToEdit }) => {
     const { showSuccess, showError } = useNotification();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -57,39 +58,71 @@ export const CreateMenuModal: React.FC<CreateMenuModalProps> = ({ isOpen, onClos
     const [discountPercent, setDiscountPercent] = useState('');
     const [loading, setLoading] = useState(false);
 
+    useEffect(() => {
+        if (isOpen) {
+            if (menuToEdit) {
+                setName(menuToEdit.name);
+                setDescription(menuToEdit.description || '');
+                setType(menuToEdit.type || 'tradicional');
+                setDiscountPercent(menuToEdit.discount_percent ? menuToEdit.discount_percent.toString() : '');
+            } else {
+                resetForm();
+            }
+        }
+    }, [isOpen, menuToEdit]);
+
+    const resetForm = () => {
+        setName('');
+        setDescription('');
+        setType('tradicional');
+        setDiscountPercent('');
+    };
+
     if (!isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (type === 'desconto' && (!discountPercent || parseFloat(discountPercent) <= 0)) {
+
+        // Validation only if creating new (since editing keeps existing type)
+        if (!menuToEdit && type === 'desconto' && (!discountPercent || parseFloat(discountPercent) <= 0)) {
             showError('Informe o percentual de desconto.');
             return;
         }
+
         setLoading(true);
 
         try {
-            const { error } = await supabase
-                .from('menus')
-                .insert([{
-                    name,
-                    description,
-                    active: true,
-                    type,
-                    discount_percent: type === 'desconto' ? parseFloat(discountPercent) : null,
-                }]);
+            if (menuToEdit) {
+                // Update only name and description as requested
+                const { error } = await supabase
+                    .from('menus')
+                    .update({ name, description })
+                    .eq('id', menuToEdit.id);
 
-            if (error) throw error;
+                if (error) throw error;
+                showSuccess('Cardápio atualizado com sucesso!');
+            } else {
+                // Create new menu
+                const { error } = await supabase
+                    .from('menus')
+                    .insert([{
+                        name,
+                        description,
+                        active: true,
+                        type,
+                        discount_percent: type === 'desconto' ? parseFloat(discountPercent) : null,
+                    }]);
 
-            showSuccess('Cardápio criado com sucesso!');
+                if (error) throw error;
+                showSuccess('Cardápio criado com sucesso!');
+            }
+
             onSuccess();
             onClose();
-            setName('');
-            setDescription('');
-            setType('tradicional');
-            setDiscountPercent('');
+            if (!menuToEdit) resetForm();
         } catch (error) {
-            console.error('Erro ao criar cardápio:', error);
-            showError('Erro ao criar o cardápio. Tente novamente.');
+            console.error('Erro ao salvar cardápio:', error);
+            showError('Erro ao salvar o cardápio. Tente novamente.');
         } finally {
             setLoading(false);
         }
@@ -99,7 +132,9 @@ export const CreateMenuModal: React.FC<CreateMenuModalProps> = ({ isOpen, onClos
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
             <div className="bg-[#1e140f] rounded-xl shadow-2xl w-full max-w-lg border border-white/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <div className="p-6 border-b border-white/10">
-                    <h2 className="text-xl font-bold text-white">Criar Novo Cardápio</h2>
+                    <h2 className="text-xl font-bold text-white">
+                        {menuToEdit ? 'Editar Cardápio' : 'Criar Novo Cardápio'}
+                    </h2>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
@@ -118,38 +153,55 @@ export const CreateMenuModal: React.FC<CreateMenuModalProps> = ({ isOpen, onClos
                         />
                     </div>
 
-                    {/* Menu Type Selection */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-2">
-                            Tipo do Cardápio <span className="text-red-500">*</span>
-                        </label>
-                        <div className="grid grid-cols-2 gap-3">
-                            {MENU_TYPES.map((mt) => {
-                                const isSelected = type === mt.value;
-                                const c = colorMap[mt.color];
-                                return (
-                                    <button
-                                        key={mt.value}
-                                        type="button"
-                                        onClick={() => setType(mt.value)}
-                                        className={`flex flex-col items-start gap-1.5 p-3 rounded-xl border-2 transition-all text-left ${isSelected
-                                                ? `${c.bg} ${c.border} ring-2 ${c.ring}`
-                                                : 'border-white/10 bg-white/5 hover:bg-white/10'
-                                            }`}
-                                    >
-                                        <div className={`flex items-center gap-2 ${isSelected ? c.text : 'text-gray-400'}`}>
-                                            {mt.icon}
-                                            <span className="font-bold text-sm">{mt.label}</span>
-                                        </div>
-                                        <span className="text-[11px] text-gray-500 leading-tight">{mt.description}</span>
-                                    </button>
-                                );
-                            })}
+                    {/* Menu Type Selection - Only visible when creating */}
+                    {!menuToEdit && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                                Tipo do Cardápio <span className="text-red-500">*</span>
+                            </label>
+                            <div className="grid grid-cols-2 gap-3">
+                                {MENU_TYPES.map((mt) => {
+                                    const isSelected = type === mt.value;
+                                    const c = colorMap[mt.color];
+                                    return (
+                                        <button
+                                            key={mt.value}
+                                            type="button"
+                                            onClick={() => setType(mt.value)}
+                                            className={`flex flex-col items-start gap-1.5 p-3 rounded-xl border-2 transition-all text-left ${isSelected
+                                                    ? `${c.bg} ${c.border} ring-2 ${c.ring}`
+                                                    : 'border-white/10 bg-white/5 hover:bg-white/10'
+                                                }`}
+                                        >
+                                            <div className={`flex items-center gap-2 ${isSelected ? c.text : 'text-gray-400'}`}>
+                                                {mt.icon}
+                                                <span className="font-bold text-sm">{mt.label}</span>
+                                            </div>
+                                            <span className="text-[11px] text-gray-500 leading-tight">{mt.description}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Discount Percent (only for 'desconto' type) */}
-                    {type === 'desconto' && (
+                    {/* Type display when editing (readonly) */}
+                    {menuToEdit && (
+                        <div className="bg-white/5 p-3 rounded-lg border border-white/10">
+                            <span className="text-xs text-gray-500 uppercase font-bold tracking-wider block mb-1">Tipo de Cardápio</span>
+                            <div className="flex items-center gap-2 text-white font-medium">
+                                {MENU_TYPES.find(t => t.value === menuToEdit.type)?.icon}
+                                <span>{MENU_TYPES.find(t => t.value === menuToEdit.type)?.label}</span>
+                                {menuToEdit.type === 'desconto' && (
+                                    <span className="text-emerald-400 text-sm">({menuToEdit.discount_percent}%)</span>
+                                )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">O tipo do cardápio não pode ser alterado.</p>
+                        </div>
+                    )}
+
+                    {/* Discount Percent (only for 'desconto' type creation) */}
+                    {!menuToEdit && type === 'desconto' && (
                         <div className="animate-in slide-in-from-top-2 duration-200">
                             <label className="block text-sm font-medium text-gray-400 mb-1">
                                 Percentual de Desconto <span className="text-red-500">*</span>
@@ -200,7 +252,7 @@ export const CreateMenuModal: React.FC<CreateMenuModalProps> = ({ isOpen, onClos
                             className="flex items-center gap-2 px-6 py-2 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading && <Loader2 className="animate-spin" size={18} />}
-                            Criar Cardápio
+                            {menuToEdit ? 'Salvar Alterações' : 'Criar Cardápio'}
                         </button>
                     </div>
                 </form>

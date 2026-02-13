@@ -34,10 +34,14 @@ export interface StockItem {
   unit?: string;
 }
 
+export type MenuType = 'tradicional' | 'desconto' | 'quantidade' | 'especial';
+
 export interface Menu {
   id: string;
   name: string;
   description?: string;
+  type: MenuType;
+  discount_percent?: number;
   active: boolean;
   created_at?: string;
 }
@@ -45,7 +49,9 @@ export interface Menu {
 export interface MenuItem {
   id: string;
   menu_id: string;
-  product_id: string;
+  product_id?: string | null;
   price: number;
+  custom_name?: string;
+  custom_description?: string;
   product?: Product;
 }

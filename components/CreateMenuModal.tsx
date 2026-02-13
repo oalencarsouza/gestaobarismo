@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNotification } from '../contexts/NotificationContext';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Coffee, Percent, Copy, Sparkles } from 'lucide-react';
+import type { MenuType } from '../types';
 
 interface CreateMenuModalProps {
     isOpen: boolean;
@@ -10,22 +11,72 @@ interface CreateMenuModalProps {
     onSuccess: () => void;
 }
 
+const MENU_TYPES: { value: MenuType; label: string; description: string; icon: React.ReactNode; color: string }[] = [
+    {
+        value: 'tradicional',
+        label: 'Tradicional',
+        description: 'Preços normais, sem desconto',
+        icon: <Coffee size={22} />,
+        color: 'orange',
+    },
+    {
+        value: 'desconto',
+        label: 'Desconto',
+        description: 'Desconto global em todos os itens',
+        icon: <Percent size={22} />,
+        color: 'green',
+    },
+    {
+        value: 'quantidade',
+        label: 'Quantidade',
+        description: 'Pague 1, Leve 2',
+        icon: <Copy size={22} />,
+        color: 'blue',
+    },
+    {
+        value: 'especial',
+        label: 'Especial',
+        description: 'Itens avulsos para eventos',
+        icon: <Sparkles size={22} />,
+        color: 'purple',
+    },
+];
+
+const colorMap: Record<string, { bg: string; border: string; text: string; ring: string }> = {
+    orange: { bg: 'bg-orange-500/10', border: 'border-orange-500/50', text: 'text-orange-400', ring: 'ring-orange-500/30' },
+    green: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/50', text: 'text-emerald-400', ring: 'ring-emerald-500/30' },
+    blue: { bg: 'bg-blue-500/10', border: 'border-blue-500/50', text: 'text-blue-400', ring: 'ring-blue-500/30' },
+    purple: { bg: 'bg-purple-500/10', border: 'border-purple-500/50', text: 'text-purple-400', ring: 'ring-purple-500/30' },
+};
+
 export const CreateMenuModal: React.FC<CreateMenuModalProps> = ({ isOpen, onClose, onSuccess }) => {
     const { showSuccess, showError } = useNotification();
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
+    const [type, setType] = useState<MenuType>('tradicional');
+    const [discountPercent, setDiscountPercent] = useState('');
     const [loading, setLoading] = useState(false);
 
     if (!isOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (type === 'desconto' && (!discountPercent || parseFloat(discountPercent) <= 0)) {
+            showError('Informe o percentual de desconto.');
+            return;
+        }
         setLoading(true);
 
         try {
             const { error } = await supabase
                 .from('menus')
-                .insert([{ name, description, active: true }]);
+                .insert([{
+                    name,
+                    description,
+                    active: true,
+                    type,
+                    discount_percent: type === 'desconto' ? parseFloat(discountPercent) : null,
+                }]);
 
             if (error) throw error;
 
@@ -34,6 +85,8 @@ export const CreateMenuModal: React.FC<CreateMenuModalProps> = ({ isOpen, onClos
             onClose();
             setName('');
             setDescription('');
+            setType('tradicional');
+            setDiscountPercent('');
         } catch (error) {
             console.error('Erro ao criar cardápio:', error);
             showError('Erro ao criar o cardápio. Tente novamente.');
@@ -44,12 +97,13 @@ export const CreateMenuModal: React.FC<CreateMenuModalProps> = ({ isOpen, onClos
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-[#1e140f] rounded-xl shadow-2xl w-full max-w-md border border-white/10">
+            <div className="bg-[#1e140f] rounded-xl shadow-2xl w-full max-w-lg border border-white/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
                 <div className="p-6 border-b border-white/10">
                     <h2 className="text-xl font-bold text-white">Criar Novo Cardápio</h2>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                    {/* Menu Name */}
                     <div>
                         <label className="block text-sm font-medium text-gray-400 mb-1">
                             Nome do Cardápio <span className="text-red-500">*</span>
@@ -64,6 +118,60 @@ export const CreateMenuModal: React.FC<CreateMenuModalProps> = ({ isOpen, onClos
                         />
                     </div>
 
+                    {/* Menu Type Selection */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-2">
+                            Tipo do Cardápio <span className="text-red-500">*</span>
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                            {MENU_TYPES.map((mt) => {
+                                const isSelected = type === mt.value;
+                                const c = colorMap[mt.color];
+                                return (
+                                    <button
+                                        key={mt.value}
+                                        type="button"
+                                        onClick={() => setType(mt.value)}
+                                        className={`flex flex-col items-start gap-1.5 p-3 rounded-xl border-2 transition-all text-left ${isSelected
+                                                ? `${c.bg} ${c.border} ring-2 ${c.ring}`
+                                                : 'border-white/10 bg-white/5 hover:bg-white/10'
+                                            }`}
+                                    >
+                                        <div className={`flex items-center gap-2 ${isSelected ? c.text : 'text-gray-400'}`}>
+                                            {mt.icon}
+                                            <span className="font-bold text-sm">{mt.label}</span>
+                                        </div>
+                                        <span className="text-[11px] text-gray-500 leading-tight">{mt.description}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Discount Percent (only for 'desconto' type) */}
+                    {type === 'desconto' && (
+                        <div className="animate-in slide-in-from-top-2 duration-200">
+                            <label className="block text-sm font-medium text-gray-400 mb-1">
+                                Percentual de Desconto <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    step="1"
+                                    required
+                                    value={discountPercent}
+                                    onChange={(e) => setDiscountPercent(e.target.value)}
+                                    placeholder="Ex: 10"
+                                    className="w-full bg-white/5 border border-emerald-500/30 rounded-lg px-4 py-2 pr-10 text-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all placeholder:text-gray-600"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-400 font-bold">%</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Description */}
                     <div>
                         <label className="block text-sm font-medium text-gray-400 mb-1">
                             Descrição (Opcional)

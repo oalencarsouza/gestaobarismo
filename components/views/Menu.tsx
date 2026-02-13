@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { StockStatusBadge } from '../StatusBadge';
 import { supabase } from '../../lib/supabase';
 import { CreateMenuModal } from '../CreateMenuModal';
 import { AddMenuItemModal } from '../AddMenuItemModal';
 import { useNotification } from '../../contexts/NotificationContext';
-import { PlusCircle, Search, ChevronLeft, Trash2, LayoutGrid, Loader2, Pencil } from 'lucide-react';
-import type { Menu, Product, Category, MenuItem } from '../../types';
+import { PlusCircle, Search, ChevronLeft, Trash2, LayoutGrid, Loader2, Pencil, Coffee, Percent, Copy, Sparkles } from 'lucide-react';
+import type { Menu, MenuItem, MenuType } from '../../types';
+
+const TYPE_CONFIG: Record<MenuType, { label: string; color: string; icon: React.ReactNode }> = {
+    tradicional: { label: 'Tradicional', color: 'text-orange-400 bg-orange-500/10 border-orange-500/30', icon: <Coffee size={14} /> },
+    desconto: { label: 'Desconto', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30', icon: <Percent size={14} /> },
+    quantidade: { label: 'Pague 1 Leve 2', color: 'text-blue-400 bg-blue-500/10 border-blue-500/30', icon: <Copy size={14} /> },
+    especial: { label: 'Especial', color: 'text-purple-400 bg-purple-500/10 border-purple-500/30', icon: <Sparkles size={14} /> },
+};
 
 export const MenuView: React.FC = () => {
     const { showError, showSuccess } = useNotification();
@@ -84,13 +90,39 @@ export const MenuView: React.FC = () => {
         setIsAddItemModalOpen(true);
     };
 
+    const getItemName = (item: MenuItem): string => {
+        if (item.product_id && item.product) {
+            return item.product.name;
+        }
+        return item.custom_name || 'Item sem nome';
+    };
+
+    const getItemSubtext = (item: MenuItem): string => {
+        if (item.product_id && item.product) {
+            return 'Produto do estoque';
+        }
+        return item.custom_description || 'Item personalizado';
+    };
+
     const filteredMenus = menus.filter(m =>
         m.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const filteredItems = menuItems.filter(item =>
-        item.product?.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredItems = menuItems.filter(item => {
+        const name = getItemName(item);
+        return name.toLowerCase().includes(searchTerm.toLowerCase());
+    });
+
+    const getTypeBadge = (menu: Menu) => {
+        const config = TYPE_CONFIG[menu.type || 'tradicional'];
+        return (
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${config.color}`}>
+                {config.icon}
+                {config.label}
+                {menu.type === 'desconto' && menu.discount_percent ? ` ${menu.discount_percent}%` : ''}
+            </span>
+        );
+    };
 
     return (
         <main className="flex-1 flex flex-col p-4 md:p-8 gap-8 overflow-y-auto">
@@ -106,9 +138,12 @@ export const MenuView: React.FC = () => {
                         </button>
                     )}
                     <div>
-                        <h2 className="text-white text-3xl font-black tracking-tight">
-                            {selectedMenu ? selectedMenu.name : 'Gestão de Cardápios'}
-                        </h2>
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-white text-3xl font-black tracking-tight">
+                                {selectedMenu ? selectedMenu.name : 'Gestão de Cardápios'}
+                            </h2>
+                            {selectedMenu && getTypeBadge(selectedMenu)}
+                        </div>
                         <p className="text-gray-400 text-base mt-1">
                             {selectedMenu ? selectedMenu.description : 'Crie e gerencie seus diferentes cardápios e preços.'}
                         </p>
@@ -162,8 +197,13 @@ export const MenuView: React.FC = () => {
                             <div className="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-100 transition-opacity">
                                 <LayoutGrid className="text-primary" size={24} />
                             </div>
-                            <h3 className="text-xl font-bold text-white mb-2 group-hover:text-primary transition-colors">{menu.name}</h3>
-                            <p className="text-gray-400 text-sm line-clamp-2 mb-4">{menu.description || 'Sem descrição.'}</p>
+                            <div className="flex items-center gap-2 mb-2">
+                                <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">{menu.name}</h3>
+                            </div>
+                            <p className="text-gray-400 text-sm line-clamp-2 mb-3">{menu.description || 'Sem descrição.'}</p>
+                            <div className="mb-3">
+                                {getTypeBadge(menu)}
+                            </div>
                             <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
                                 <span className={menu.active ? 'text-green-500' : 'text-gray-500'}>
                                     {menu.active ? 'Ativo' : 'Inativo'}
@@ -187,9 +227,10 @@ export const MenuView: React.FC = () => {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-white/5 text-gray-400 text-xs font-medium border-b border-white/10 uppercase tracking-wider">
-                                    <th className="px-6 py-4">Produto</th>
+                                    <th className="px-6 py-4">Item</th>
                                     <th className="px-6 py-4">Preço no Cardápio</th>
                                     <th className="px-6 py-4">Preço Original</th>
+                                    {selectedMenu.type === 'quantidade' && <th className="px-6 py-4">Promoção</th>}
                                     <th className="px-6 py-4 text-right">Ações</th>
                                 </tr>
                             </thead>
@@ -198,8 +239,15 @@ export const MenuView: React.FC = () => {
                                     <tr key={item.id} className="hover:bg-white/5 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
-                                                <span className="text-white font-medium">{item.product?.name}</span>
-                                                <span className="text-gray-500 text-xs">{item.product?.category_id}</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-white font-medium">{getItemName(item)}</span>
+                                                    {!item.product_id && (
+                                                        <span className="text-[10px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/30 px-1.5 py-0.5 rounded-full uppercase">
+                                                            Personalizado
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <span className="text-gray-500 text-xs">{getItemSubtext(item)}</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -208,8 +256,18 @@ export const MenuView: React.FC = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-gray-500 font-numbers italic">
-                                            R$ {item.product?.price.toFixed(2)}
+                                            {item.product?.price
+                                                ? `R$ ${item.product.price.toFixed(2)}`
+                                                : '—'
+                                            }
                                         </td>
+                                        {selectedMenu.type === 'quantidade' && (
+                                            <td className="px-6 py-4">
+                                                <span className="text-blue-400 font-bold bg-blue-500/10 border border-blue-500/30 px-2 py-1 rounded-lg text-xs">
+                                                    2x
+                                                </span>
+                                            </td>
+                                        )}
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-end gap-2">
                                                 <button
@@ -238,7 +296,7 @@ export const MenuView: React.FC = () => {
                                 ))}
                                 {filteredItems.length === 0 && (
                                     <tr>
-                                        <td colSpan={4} className="px-6 py-20 text-center text-gray-500 italic">
+                                        <td colSpan={selectedMenu.type === 'quantidade' ? 5 : 4} className="px-6 py-20 text-center text-gray-500 italic">
                                             Nenhum item adicionado a este cardápio ainda.
                                         </td>
                                     </tr>
@@ -264,6 +322,8 @@ export const MenuView: React.FC = () => {
                     }}
                     onSuccess={() => fetchMenuItems(selectedMenu.id)}
                     menuId={selectedMenu.id}
+                    menuType={selectedMenu.type || 'tradicional'}
+                    menuDiscountPercent={selectedMenu.discount_percent}
                     editingItem={itemToEdit}
                 />
             )}

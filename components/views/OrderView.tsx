@@ -91,6 +91,14 @@ export const OrderView: React.FC<OrderViewProps> = ({
     }, []);
 
     useEffect(() => {
+        if (selectedOrder) {
+            fetchOrderItems(selectedOrder.id);
+        } else {
+            setOrderItems([]);
+        }
+    }, [selectedOrder?.id]);
+
+    useEffect(() => {
         if (triggerNewOrder) {
             setSelectedOrder(null);
             setTempCart([]);
@@ -148,7 +156,20 @@ export const OrderView: React.FC<OrderViewProps> = ({
 
             showSuccess('Pedido criado com sucesso!');
             await fetchOrders();
-            setSelectedOrder(newOrder);
+
+            // Fetch the full updated order (with correct total)
+            const { data: updatedOrderData } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('id', newOrder.id)
+                .single();
+
+            if (updatedOrderData) {
+                setSelectedOrder(updatedOrderData);
+            } else {
+                setSelectedOrder(newOrder);
+            }
+
             setTempCart([]); // Clear temp cart
 
         } catch (error) {

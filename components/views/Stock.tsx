@@ -333,7 +333,7 @@ export const Stock: React.FC = () => {
                 </div>
 
                 <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
-                    {['Todos', ...categories.map(c => c.name)].map(category => (
+                    {['Todos', ...categories.filter(c => !['Lanches', 'Drinks'].includes(c.name)).map(c => c.name)].map(category => (
                         <button
                             key={category}
                             onClick={() => setSelectedCategory(category)}

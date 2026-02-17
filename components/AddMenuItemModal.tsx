@@ -258,8 +258,8 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
                             type="button"
                             onClick={() => { setItemMode('stock'); setCustomName(''); setCustomDescription(''); }}
                             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-bold text-sm transition-all ${itemMode === 'stock'
-                                    ? 'border-primary bg-primary/10 text-primary'
-                                    : 'border-white/10 text-gray-400 hover:bg-white/5'
+                                ? 'border-primary bg-primary/10 text-primary'
+                                : 'border-white/10 text-gray-400 hover:bg-white/5'
                                 }`}
                         >
                             <Package size={18} />
@@ -269,8 +269,8 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
                             type="button"
                             onClick={() => { setItemMode('custom'); setSelectedProductId(''); setSelectedProduct(null); }}
                             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-bold text-sm transition-all ${itemMode === 'custom'
-                                    ? 'border-purple-500 bg-purple-500/10 text-purple-400'
-                                    : 'border-white/10 text-gray-400 hover:bg-white/5'
+                                ? 'border-purple-500 bg-purple-500/10 text-purple-400'
+                                : 'border-white/10 text-gray-400 hover:bg-white/5'
                                 }`}
                         >
                             <PenLine size={18} />
@@ -292,7 +292,7 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
                                     className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary outline-none appearance-none cursor-pointer"
                                 >
                                     <option value="" className="bg-[#1A1614] text-gray-500">Todas as Categorias</option>
-                                    {categories.map(cat => (
+                                    {categories.filter(c => !['Lanches', 'Drinks'].includes(c.name)).map(cat => (
                                         <option key={cat.id} value={cat.id} className="bg-[#1A1614] text-white">
                                             {cat.name}
                                         </option>
@@ -387,8 +387,8 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
                                                         type="button"
                                                         onClick={() => { setDiscountType('percent'); setDiscountValue(pct); }}
                                                         className={`flex-1 py-2 rounded-lg border border-white/10 text-xs font-bold hover:bg-white/5 transition-all ${discountType === 'percent' && discountValue === pct
-                                                                ? 'bg-primary/20 border-primary text-primary'
-                                                                : 'text-gray-400'
+                                                            ? 'bg-primary/20 border-primary text-primary'
+                                                            : 'text-gray-400'
                                                             }`}
                                                     >
                                                         {pct}% Off

@@ -78,7 +78,7 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
                             className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary outline-none appearance-none cursor-pointer"
                         >
                             <option value="" className="bg-[#1A1614]">Todas as Categorias</option>
-                            {[...new Set(categories.map(c => c.name))].map(catName => {
+                            {[...new Set(categories.map(c => c.name))].filter(name => !['Lanches', 'Drinks'].includes(name)).map(catName => {
                                 const cat = categories.find(c => c.name === catName);
                                 return (
                                     <option key={cat?.id} value={cat?.id} className="bg-[#1A1614]">

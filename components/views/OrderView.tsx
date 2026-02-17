@@ -276,7 +276,18 @@ export const OrderView: React.FC<OrderViewProps> = ({
     };
 
     const activeOrders = orders.filter(o => o.status === 'Aberto');
-    const totalOpenValue = activeOrders.reduce((sum, o) => sum + Number(o.total), 0);
+
+    // Calculate Daily Cash: Total of 'Pago' orders updated today
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const dailyCashValue = orders
+        .filter(o => {
+            if (o.status !== 'Pago' || !o.updated_at) return false;
+            const updatedDate = new Date(o.updated_at);
+            return updatedDate >= startOfToday;
+        })
+        .reduce((sum, o) => sum + Number(o.total), 0);
 
     const filteredOrders = orders.filter(o =>
         o.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -326,8 +337,8 @@ export const OrderView: React.FC<OrderViewProps> = ({
                 />
                 <StatCardCompact
                     icon="payments"
-                    label="Valor em Aberto"
-                    value={`R$ ${totalOpenValue.toFixed(2)}`}
+                    label="Caixa Diário"
+                    value={`R$ ${dailyCashValue.toFixed(2)}`}
                     iconBgColor="bg-green-500/10"
                     iconColor="text-green-500"
                 />

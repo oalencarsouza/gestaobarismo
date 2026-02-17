@@ -157,6 +157,74 @@ export const OrderHistory: React.FC = () => {
         });
     };
 
+    const handlePrint = () => {
+        if (!selectedOrder) return;
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            showError('Houve um erro ao abrir a janela de impressão. Verifique se o bloqueador de pop-ups está ativo.');
+            return;
+        }
+
+        const itemsHtml = orderItems.map(item => `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px;">
+                <span style="flex: 1;">${item.product_name} x${item.quantity}</span>
+                <span style="font-weight: bold;">R$ ${(item.price * item.quantity).toFixed(2)}</span>
+            </div>
+        `).join('');
+
+        const orderInfo = `
+            <div style="border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; text-align: center;">
+                <h1 style="margin: 0; font-size: 18px;">GESTBARISMO</h1>
+                <p style="margin: 5px 0; font-size: 12px;">Comprovante de Pedido</p>
+                <p style="margin: 2px 0; font-size: 10px;">ID: #${selectedOrder.id.slice(0, 8).toUpperCase()}</p>
+                <p style="margin: 2px 0; font-size: 10px;">Data: ${new Date(selectedOrder.created_at!).toLocaleString('pt-BR')}</p>
+            </div>
+            <div style="margin-bottom: 10px; font-size: 12px;">
+                <strong>Cliente:</strong> ${selectedOrder.client_name}<br>
+                ${selectedOrder.client_phone ? `<strong>Tel:</strong> ${selectedOrder.client_phone}` : ''}
+            </div>
+        `;
+
+        const totalInfo = `
+            <div style="border-top: 1px dashed #000; padding-top: 10px; margin-top: 10px;">
+                <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: bold;">
+                    <span>TOTAL</span>
+                    <span>R$ ${Number(selectedOrder.total).toFixed(2)}</span>
+                </div>
+                <p style="text-align: center; font-size: 10px; margin-top: 20px;">Obrigado pela preferência!</p>
+            </div>
+        `;
+
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Impressão de Pedido - GESTBARISMO</title>
+                    <style>
+                        body { font-family: 'Courier New', Courier, monospace; width: 80mm; margin: 0 auto; padding: 20px; color: #000; }
+                        @media print {
+                            body { width: 100%; margin: 0; padding: 10px; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    ${orderInfo}
+                    <div style="margin-bottom: 5px; font-weight: bold; font-size: 12px; border-bottom: 1px solid #eee; padding-bottom: 5px;">ITENS:</div>
+                    ${itemsHtml}
+                    ${totalInfo}
+                    <script>
+                        window.onload = () => {
+                            window.print();
+                            window.onafterprint = () => window.close();
+                        };
+                    </script>
+                </body>
+            </html>
+        `);
+
+        printWindow.document.close();
+    };
+
     useEffect(() => {
         fetchOrders(selectedDate);
     }, [selectedDate]);
@@ -397,7 +465,10 @@ export const OrderHistory: React.FC = () => {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <button className="flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 group">
+                                <button
+                                    onClick={handlePrint}
+                                    className="flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 group"
+                                >
                                     <Printer size={18} className="text-primary group-hover:scale-110 transition-transform" />
                                     Imprimir
                                 </button>

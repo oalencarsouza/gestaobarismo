@@ -21,7 +21,12 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
     Cancelado: 'text-red-400 bg-red-500/10 border-red-500/30',
 };
 
-export const OrderView: React.FC = () => {
+interface OrderViewProps {
+    triggerNewOrder?: boolean;
+    onNewOrderTriggered?: () => void;
+}
+
+export const OrderView: React.FC<OrderViewProps> = ({ triggerNewOrder, onNewOrderTriggered }) => {
     const { showSuccess, showError } = useNotification();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
@@ -55,6 +60,13 @@ export const OrderView: React.FC = () => {
             fetchOrderItems(selectedOrder.id);
         }
     }, [selectedOrder]);
+
+    useEffect(() => {
+        if (triggerNewOrder) {
+            setIsNewOrderModalOpen(true);
+            if (onNewOrderTriggered) onNewOrderTriggered();
+        }
+    }, [triggerNewOrder, onNewOrderTriggered]);
 
     const fetchOrders = async () => {
         setLoading(true);

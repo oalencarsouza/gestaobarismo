@@ -5,7 +5,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { OrderStatusBadge } from '../StatusBadge';
 import { StatCard } from '../StatCard';
 import { ConfirmModal } from '../ConfirmModal';
-import { Loader2, Search, X, Printer, Calendar, Clock, ShoppingBag, CheckCircle2 } from 'lucide-react';
+import { Loader2, Search, X, Printer, Calendar, Clock, ShoppingBag, CheckCircle2, History } from 'lucide-react';
 import type { Order, OrderItem } from '../../types';
 
 const STATUS_COLORS: Record<string, string> = {

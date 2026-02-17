@@ -225,21 +225,60 @@ export const OrderView: React.FC<OrderViewProps> = ({
             isDestructive: false,
             onConfirm: async () => {
                 try {
-                    const { error } = await supabase
+                    // 1. Update order status to Pago
+                    const { error: updateError } = await supabase
                         .from('orders')
                         .update({ status: 'Pago', updated_at: new Date().toISOString() })
                         .eq('id', order.id);
 
-                    if (error) throw error;
+                    if (updateError) throw updateError;
 
+                    // 2. Fetch order items with their associated product_ids
+                    const { data: items, error: itemsError } = await supabase
+                        .from('order_items')
+                        .select('*, menu_items(product_id)')
+                        .eq('order_id', order.id);
+
+                    if (itemsError) throw itemsError;
+
+                    // 3. Update stock for each item
+                    if (items && items.length > 0) {
+                        for (const item of items) {
+                            const productId = (item as any).menu_items?.product_id;
+                            if (!productId) continue;
+
+                            // Calculate subtraction quantity
+                            // If menu_type is 'quantidade' (Pague 1 Leve 2), substract 2x
+                            const multiplier = item.menu_type === 'quantidade' ? 2 : 1;
+                            const qtyToSubtract = item.quantity * multiplier;
+
+                            // Fetch current stock
+                            const { data: stockData } = await supabase
+                                .from('stock')
+                                .select('quantity')
+                                .eq('product_id', productId)
+                                .single();
+
+                            if (stockData) {
+                                const newQty = Math.max(0, stockData.quantity - qtyToSubtract);
+                                await supabase
+                                    .from('stock')
+                                    .update({ quantity: newQty })
+                                    .eq('product_id', productId);
+                            }
+                        }
+                    }
+
+                    // 4. Update local state
                     setOrders(prev => prev.map(o =>
                         o.id === order.id ? { ...o, status: 'Pago' } : o
                     ));
                     if (selectedOrder?.id === order.id) {
                         setSelectedOrder(prev => prev ? { ...prev, status: 'Pago' } : null);
                     }
-                    showSuccess('Pedido finalizado!');
+                    showSuccess('Pedido finalizado e estoque atualizado!');
                 } catch (error) {
+                    console.error('Erro ao finalizar pedido:', error);
                     showError('Erro ao finalizar pedido.');
                 }
             }

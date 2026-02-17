@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { CreateMenuModal } from '../CreateMenuModal';
 import { AddMenuItemModal } from '../AddMenuItemModal';
+import { ConfirmModal } from '../ConfirmModal';
 import { useNotification } from '../../contexts/NotificationContext';
 import { PlusCircle, Search, ChevronLeft, Trash2, LayoutGrid, Loader2, Pencil, Coffee, Percent, Copy, Sparkles, X } from 'lucide-react';
 import type { Menu, MenuItem, MenuType } from '../../types';
@@ -31,6 +32,20 @@ export const MenuView: React.FC = () => {
 
     const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
     const [itemToEdit, setItemToEdit] = useState<MenuItem | null>(null);
+
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        isDestructive: boolean;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+        isDestructive: false,
+    });
 
     React.useEffect(() => {
         fetchMenus();
@@ -75,25 +90,32 @@ export const MenuView: React.FC = () => {
         }
     };
 
-    const handleDeleteMenu = async (menu: Menu, e: React.MouseEvent) => {
+    const handleDeleteMenu = (menu: Menu, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!confirm(`Tem certeza que deseja excluir o cardápio "${menu.name}"? Esta ação não pode ser desfeita e excluirá todos os itens associados.`)) return;
 
-        try {
-            const { error } = await supabase
-                .from('menus')
-                .delete()
-                .eq('id', menu.id);
+        setConfirmModal({
+            isOpen: true,
+            title: 'Excluir Cardápio',
+            message: `Tem certeza que deseja excluir o cardápio "${menu.name}"? Esta ação não pode ser desfeita e excluirá todos os itens associados.`,
+            isDestructive: true,
+            onConfirm: async () => {
+                try {
+                    const { error } = await supabase
+                        .from('menus')
+                        .delete()
+                        .eq('id', menu.id);
 
-            if (error) throw error;
+                    if (error) throw error;
 
-            setMenus(prev => prev.filter(m => m.id !== menu.id));
-            if (selectedMenu?.id === menu.id) setSelectedMenu(null);
-            showSuccess('Cardápio excluído com sucesso!');
-        } catch (error) {
-            console.error('Erro ao excluir cardápio:', error);
-            showError('Erro ao excluir o cardápio.');
-        }
+                    setMenus(prev => prev.filter(m => m.id !== menu.id));
+                    if (selectedMenu?.id === menu.id) setSelectedMenu(null);
+                    showSuccess('Cardápio excluído com sucesso!');
+                } catch (error) {
+                    console.error('Erro ao excluir cardápio:', error);
+                    showError('Erro ao excluir o cardápio.');
+                }
+            }
+        });
     };
 
     const handleMenuClick = (menu: Menu) => {
@@ -107,20 +129,27 @@ export const MenuView: React.FC = () => {
         }
     };
 
-    const handleDeleteMenuItem = async (itemId: string) => {
-        if (!confirm('Tem certeza que deseja remover este item do cardápio?')) return;
-        try {
-            const { error } = await supabase
-                .from('menu_items')
-                .delete()
-                .eq('id', itemId);
+    const handleDeleteMenuItem = (itemId: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Remover Item',
+            message: 'Tem certeza que deseja remover este item do cardápio?',
+            isDestructive: true,
+            onConfirm: async () => {
+                try {
+                    const { error } = await supabase
+                        .from('menu_items')
+                        .delete()
+                        .eq('id', itemId);
 
-            if (error) throw error;
-            setMenuItems(prev => prev.filter(item => item.id !== itemId));
-            showSuccess('Item removido com sucesso!');
-        } catch (error) {
-            showError('Erro ao remover o item.');
-        }
+                    if (error) throw error;
+                    setMenuItems(prev => prev.filter(item => item.id !== itemId));
+                    showSuccess('Item removido com sucesso!');
+                } catch (error) {
+                    showError('Erro ao remover o item.');
+                }
+            }
+        });
     };
 
     const handleEditItem = (item: MenuItem) => {
@@ -214,8 +243,8 @@ export const MenuView: React.FC = () => {
                             <button
                                 onClick={() => setIsEditMode(!isEditMode)}
                                 className={`p-3 rounded-lg border transition-all ${isEditMode
-                                        ? 'bg-red-500/10 border-red-500/50 text-red-500'
-                                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+                                    ? 'bg-red-500/10 border-red-500/50 text-red-500'
+                                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
                                     }`}
                                 title={isEditMode ? "Sair do modo de edição" : "Editar/Excluir cardápios"}
                             >
@@ -249,8 +278,8 @@ export const MenuView: React.FC = () => {
                             key={menu.id}
                             onClick={() => handleMenuClick(menu)}
                             className={`group p-6 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${isEditMode
-                                    ? 'bg-white/5 border-primary/50 hover:bg-primary/5'
-                                    : 'bg-white/5 border-white/10 hover:border-primary/50'
+                                ? 'bg-white/5 border-primary/50 hover:bg-primary/5'
+                                : 'bg-white/5 border-white/10 hover:border-primary/50'
                                 }`}
                         >
                             {/* Icon Indicator: LayoutGrid (Normal) vs Trash2 (Edit Mode) */}
@@ -416,6 +445,16 @@ export const MenuView: React.FC = () => {
                     editingItem={itemToEdit}
                 />
             )}
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                isDestructive={confirmModal.isDestructive}
+                variant="toast"
+            />
         </main>
     );
 };

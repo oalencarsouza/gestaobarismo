@@ -284,6 +284,7 @@ export const OrderView = () => {
                 </div>
                 <button
                     onClick={() => {
+                        setSelectedOrder(null);
                         setTempCart([]);
                         setIsAddItemModalOpen(true);
                     }}

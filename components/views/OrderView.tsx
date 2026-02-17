@@ -298,15 +298,30 @@ export const OrderView: React.FC<OrderViewProps> = ({
 
     const activeOrders = orders.filter(o => o.status === 'Aberto');
 
-    // Calculate Daily Cash: Total of 'Pago' orders updated today
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-
+    // Calculate Daily Cash: Total of 'Pago' orders within business hours (18h-00h) 
+    // with a 1h margin (17h - 01h next day).
     const dailyCashValue = orders
         .filter(o => {
             if (o.status !== 'Pago' || !o.updated_at) return false;
+
             const updatedDate = new Date(o.updated_at);
-            return updatedDate >= startOfToday;
+            const now = new Date();
+
+            // Define business session: 17:00 of the CURRENT day to 01:00 of the NEXT day
+            const sessionStart = new Date(now);
+            sessionStart.setHours(17, 0, 0, 0);
+
+            const sessionEnd = new Date(now);
+            sessionEnd.setDate(sessionEnd.getDate() + 1);
+            sessionEnd.setHours(1, 0, 0, 0);
+
+            // If it's currently early morning (before 01:00), we are still in "yesterday's" session
+            if (now.getHours() < 1) {
+                sessionStart.setDate(sessionStart.getDate() - 1);
+                sessionEnd.setDate(sessionEnd.getDate() - 1);
+            }
+
+            return updatedDate >= sessionStart && updatedDate <= sessionEnd;
         })
         .reduce((sum, o) => sum + Number(o.total), 0);
 

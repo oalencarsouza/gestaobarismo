@@ -1,10 +1,3 @@
-export interface HistoricalOrder {
-  id: string;
-  time: string;
-  client: string;
-  total: number;
-  status: 'Pago' | 'Aberto' | 'Cancelado';
-}
 
 export interface Category {
   id: string;

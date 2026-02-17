@@ -191,7 +191,7 @@ export const OrderHistory: React.FC = () => {
     }
 
     return (
-        <main className="flex-1 flex flex-col p-4 md:p-8 gap-8 overflow-y-auto bg-background-dark">
+        <main className="flex-1 flex flex-col p-4 md:p-8 gap-8 overflow-y-auto overflow-x-hidden bg-background-dark">
             {/* Header */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
@@ -332,100 +332,98 @@ export const OrderHistory: React.FC = () => {
                 </div>
 
                 {/* Sidebar Details */}
-                <aside className={`w-full xl:w-[450px] bg-white/5 border border-white/10 rounded-2xl p-8 flex flex-col gap-6 sticky top-8 transition-all h-fit ${selectedOrder ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12 pointer-events-none'}`}>
-                    {selectedOrder && (
-                        <>
-                            <div className="flex justify-between items-start">
-                                <div>
-                                    <h3 className="text-2xl font-black text-white tracking-tight">
-                                        Detalhes do Pedido <span className="text-primary ml-2">#{selectedOrder.id.slice(0, 5).toUpperCase()}</span>
-                                    </h3>
-                                    <p className="text-gray-500 text-sm mt-1 flex items-center gap-2">
-                                        <Clock size={14} />
-                                        Iniciado às {new Date(selectedOrder.created_at!).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-                                    </p>
+                {selectedOrder && (
+                    <aside className="w-full xl:w-[450px] bg-white/5 border border-white/10 rounded-2xl p-8 flex flex-col gap-6 sticky top-8 transition-all h-fit animate-in fade-in slide-in-from-right-4 duration-300">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="text-2xl font-black text-white tracking-tight">
+                                    Detalhes do Pedido <span className="text-primary ml-2">#{selectedOrder.id.slice(0, 5).toUpperCase()}</span>
+                                </h3>
+                                <p className="text-gray-500 text-sm mt-1 flex items-center gap-2">
+                                    <Clock size={14} />
+                                    Iniciado às {new Date(selectedOrder.created_at!).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setSelectedOrder(null)}
+                                className="p-2 rounded-xl bg-white/5 text-gray-500 hover:text-white hover:bg-white/10 transition-all"
+                            >
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="flex flex-col gap-4">
+                            <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                                <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Cliente</span>
+                                <span className="text-white font-bold">{selectedOrder.client_name}</span>
+                            </div>
+
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-2 px-2">
+                                    <ShoppingBag size={14} className="text-primary" />
+                                    <span className="text-white text-xs font-black uppercase tracking-[0.2em]">Itens Consumidos</span>
                                 </div>
+
+                                <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {itemsLoading ? (
+                                        <div className="py-8 flex justify-center">
+                                            <Loader2 className="animate-spin text-primary opacity-50" size={24} />
+                                        </div>
+                                    ) : orderItems.length === 0 ? (
+                                        <p className="text-gray-600 text-center py-4 text-xs italic">Sem itens registrados.</p>
+                                    ) : (
+                                        orderItems.map(item => (
+                                            <div key={item.id} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5 hover:border-primary/20 transition-colors">
+                                                <div className="flex flex-col">
+                                                    <span className="text-white font-bold text-sm">{item.product_name}</span>
+                                                    <span className="text-gray-500 text-[10px]">x{item.quantity} un.</span>
+                                                </div>
+                                                <span className="text-primary font-black font-numbers text-sm">
+                                                    R$ {(item.price * item.quantity).toFixed(2)}
+                                                </span>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="mt-auto pt-6 border-t border-white/10 space-y-6">
+                            <div className="flex justify-between items-center">
+                                <span className="text-2xl font-black text-white tracking-widest uppercase">Total</span>
+                                <span className="text-3xl font-black text-primary font-numbers">
+                                    R$ {Number(selectedOrder.total).toFixed(2)}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <button className="flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 group">
+                                    <Printer size={18} className="text-primary group-hover:scale-110 transition-transform" />
+                                    Imprimir
+                                </button>
                                 <button
-                                    onClick={() => setSelectedOrder(null)}
-                                    className="p-2 rounded-xl bg-white/5 text-gray-500 hover:text-white hover:bg-white/10 transition-all"
+                                    onClick={() => selectedOrder.status !== 'Pago' && handleFinalizeOrder(selectedOrder)}
+                                    className={`flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 group ${selectedOrder.status === 'Pago'
+                                        ? 'bg-green-500/10 text-green-500 border border-green-500/20 cursor-default'
+                                        : 'bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20'
+                                        }`}
                                 >
-                                    <X size={20} />
+                                    {selectedOrder.status === 'Pago' ? (
+                                        <>
+                                            <CheckCircle2 size={18} />
+                                            Finalizado
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="material-symbols-outlined text-lg">payments</span>
+                                            Finalizar
+                                        </>
+                                    )}
                                 </button>
                             </div>
-
-                            <div className="flex flex-col gap-4">
-                                <div className="flex items-center justify-between p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                                    <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">Cliente</span>
-                                    <span className="text-white font-bold">{selectedOrder.client_name}</span>
-                                </div>
-
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-2 px-2">
-                                        <ShoppingBag size={14} className="text-primary" />
-                                        <span className="text-white text-xs font-black uppercase tracking-[0.2em]">Itens Consumidos</span>
-                                    </div>
-
-                                    <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                        {itemsLoading ? (
-                                            <div className="py-8 flex justify-center">
-                                                <Loader2 className="animate-spin text-primary opacity-50" size={24} />
-                                            </div>
-                                        ) : orderItems.length === 0 ? (
-                                            <p className="text-gray-600 text-center py-4 text-xs italic">Sem itens registrados.</p>
-                                        ) : (
-                                            orderItems.map(item => (
-                                                <div key={item.id} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5 hover:border-primary/20 transition-colors">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-white font-bold text-sm">{item.product_name}</span>
-                                                        <span className="text-gray-500 text-[10px]">x{item.quantity} un.</span>
-                                                    </div>
-                                                    <span className="text-primary font-black font-numbers text-sm">
-                                                        R$ {(item.price * item.quantity).toFixed(2)}
-                                                    </span>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="mt-auto pt-6 border-t border-white/10 space-y-6">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-2xl font-black text-white tracking-widest uppercase">Total</span>
-                                    <span className="text-3xl font-black text-primary font-numbers">
-                                        R$ {Number(selectedOrder.total).toFixed(2)}
-                                    </span>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <button className="flex items-center justify-center gap-3 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 group">
-                                        <Printer size={18} className="text-primary group-hover:scale-110 transition-transform" />
-                                        Imprimir
-                                    </button>
-                                    <button
-                                        onClick={() => selectedOrder.status !== 'Pago' && handleFinalizeOrder(selectedOrder)}
-                                        className={`flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 group ${selectedOrder.status === 'Pago'
-                                            ? 'bg-green-500/10 text-green-500 border border-green-500/20 cursor-default'
-                                            : 'bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20'
-                                            }`}
-                                    >
-                                        {selectedOrder.status === 'Pago' ? (
-                                            <>
-                                                <CheckCircle2 size={18} />
-                                                Finalizado
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span className="material-symbols-outlined text-lg">payments</span>
-                                                Finalizar
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-                        </>
-                    )}
-                </aside>
+                        </div>
+                    </aside>
+                )}
             </div>
 
             {/* Pagination/Status Footer */}

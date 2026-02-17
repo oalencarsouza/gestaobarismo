@@ -1,140 +1,488 @@
-import React, { useState } from 'react';
-import type { HistoricalOrder } from '../../types';
-import { OrderStatusBadge } from '../StatusBadge';
-import { StatCard } from '../StatCard';
 
-// Using the same type for simplicity in this logic, but filtered for active ones
-const activeOrders: HistoricalOrder[] = [
-    { id: '#9831', time: '19:35', client: 'Mesa 05', total: 312.00, status: 'Aberto' },
-    { id: '#9825', time: '18:15', client: 'Mesa 02', total: 85.00, status: 'Aberto' },
-    { id: '#9820', time: '17:45', client: 'Balcão 01', total: 22.50, status: 'Aberto' },
-];
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../../lib/supabase';
+import { useNotification } from '../../contexts/NotificationContext';
+import { StatCardCompact } from '../StatCard';
+import { NewOrderModal } from '../NewOrderModal';
+import { AddOrderItemModal } from '../AddOrderItemModal';
+import { ConfirmModal } from '../ConfirmModal';
+import { PlusCircle, Search, Loader2, Trash2, ShoppingCart, Plus, X, Coffee, Percent, Copy, Sparkles } from 'lucide-react';
+import type { Order, OrderItem, OrderStatus, MenuType } from '../../types';
+
+const ORDER_TYPE_BADGES: Record<string, { badge: string; color: string; icon: React.ReactNode }> = {
+    quantidade: { badge: 'Em dobro!', color: 'text-blue-400 bg-blue-500/10 border-blue-500/30', icon: <Copy size={12} /> },
+    desconto: { badge: 'Com desconto!', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30', icon: <Percent size={12} /> },
+    especial: { badge: 'Especial!', color: 'text-purple-400 bg-purple-500/10 border-purple-500/30', icon: <Sparkles size={12} /> },
+};
+
+const STATUS_COLORS: Record<OrderStatus, string> = {
+    Aberto: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
+    Pago: 'text-green-400 bg-green-500/10 border-green-500/30',
+    Cancelado: 'text-red-400 bg-red-500/10 border-red-500/30',
+};
 
 export const OrderView: React.FC = () => {
-    const [selectedOrder, setSelectedOrder] = useState<HistoricalOrder | null>(activeOrders[0]);
+    const { showSuccess, showError } = useNotification();
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+    const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Modal States
+    const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
+    const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        isDestructive: boolean;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+        isDestructive: false,
+    });
+
+    useEffect(() => {
+        fetchOrders();
+    }, []);
+
+    useEffect(() => {
+        if (selectedOrder) {
+            fetchOrderItems(selectedOrder.id);
+        }
+    }, [selectedOrder]);
+
+    const fetchOrders = async () => {
+        setLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('orders')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setOrders(data || []);
+        } catch (error) {
+            console.error('Erro ao buscar pedidos:', error);
+            showError('Não foi possível carregar os pedidos.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const fetchOrderItems = async (orderId: string) => {
+        try {
+            const { data, error } = await supabase
+                .from('order_items')
+                .select('*')
+                .eq('order_id', orderId)
+                .order('created_at', { ascending: true });
+
+            if (error) throw error;
+            setOrderItems(data || []);
+        } catch (error) {
+            console.error('Erro ao buscar itens:', error);
+        }
+    };
+
+    const handleCreateOrder = async (clientName: string) => {
+        try {
+            const { data, error } = await supabase
+                .from('orders')
+                .insert([{ client_name: clientName }])
+                .select();
+
+            if (error) throw error;
+            if (data && data.length > 0) {
+                showSuccess('Pedido criado com sucesso!');
+                await fetchOrders();
+                setSelectedOrder(data[0]);
+            }
+        } catch (error) {
+            console.error('Erro ao criar pedido:', error);
+            showError('Erro ao criar o pedido.');
+        }
+    };
+
+    const handleDeleteItem = (item: OrderItem) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Remover Item',
+            message: `Remover "${item.product_name}" do pedido?`,
+            isDestructive: true,
+            onConfirm: async () => {
+                try {
+                    const { error } = await supabase
+                        .from('order_items')
+                        .delete()
+                        .eq('id', item.id);
+
+                    if (error) throw error;
+
+                    // Recalculate total
+                    const remaining = orderItems.filter(i => i.id !== item.id);
+                    const newTotal = remaining.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+                    await supabase
+                        .from('orders')
+                        .update({ total: newTotal, updated_at: new Date().toISOString() })
+                        .eq('id', item.order_id);
+
+                    setOrderItems(remaining);
+                    setOrders(prev => prev.map(o =>
+                        o.id === item.order_id ? { ...o, total: newTotal } : o
+                    ));
+                    if (selectedOrder?.id === item.order_id) {
+                        setSelectedOrder(prev => prev ? { ...prev, total: newTotal } : null);
+                    }
+                    showSuccess('Item removido!');
+                } catch (error) {
+                    showError('Erro ao remover item.');
+                }
+            }
+        });
+    };
+
+    const handleFinalizeOrder = (order: Order) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Finalizar Pedido',
+            message: `Finalizar o pedido de "${order.client_name}"? Total: R$ ${order.total.toFixed(2)}`,
+            isDestructive: false,
+            onConfirm: async () => {
+                try {
+                    const { error } = await supabase
+                        .from('orders')
+                        .update({ status: 'Pago', updated_at: new Date().toISOString() })
+                        .eq('id', order.id);
+
+                    if (error) throw error;
+
+                    setOrders(prev => prev.map(o =>
+                        o.id === order.id ? { ...o, status: 'Pago' } : o
+                    ));
+                    if (selectedOrder?.id === order.id) {
+                        setSelectedOrder(prev => prev ? { ...prev, status: 'Pago' } : null);
+                    }
+                    showSuccess('Pedido finalizado!');
+                } catch (error) {
+                    showError('Erro ao finalizar pedido.');
+                }
+            }
+        });
+    };
+
+    const handleCancelOrder = (order: Order) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Cancelar Pedido',
+            message: `Tem certeza que deseja cancelar o pedido de "${order.client_name}"?`,
+            isDestructive: true,
+            onConfirm: async () => {
+                try {
+                    const { error } = await supabase
+                        .from('orders')
+                        .update({ status: 'Cancelado', updated_at: new Date().toISOString() })
+                        .eq('id', order.id);
+
+                    if (error) throw error;
+
+                    setOrders(prev => prev.map(o =>
+                        o.id === order.id ? { ...o, status: 'Cancelado' } : o
+                    ));
+                    if (selectedOrder?.id === order.id) {
+                        setSelectedOrder(prev => prev ? { ...prev, status: 'Cancelado' } : null);
+                    }
+                    showSuccess('Pedido cancelado.');
+                } catch (error) {
+                    showError('Erro ao cancelar pedido.');
+                }
+            }
+        });
+    };
+
+    const handleItemsAdded = () => {
+        if (selectedOrder) {
+            fetchOrderItems(selectedOrder.id);
+            fetchOrders();
+        }
+    };
+
+    const activeOrders = orders.filter(o => o.status === 'Aberto');
+    const totalOpenValue = activeOrders.reduce((sum, o) => sum + Number(o.total), 0);
+
+    const filteredOrders = orders.filter(o =>
+        o.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        o.id.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (loading) {
+        return (
+            <div className="flex-1 flex items-center justify-center bg-background-dark">
+                <Loader2 className="animate-spin text-primary" size={48} />
+            </div>
+        );
+    }
 
     return (
-        <main className="flex-1 flex flex-col p-4 md:p-8 gap-8 overflow-y-auto">
+        <main className="flex-1 flex flex-col p-4 md:p-8 gap-8 overflow-y-auto bg-background-dark">
+            {/* Header */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
                     <h2 className="text-white text-3xl font-black tracking-tight">Gestão de Pedidos</h2>
                     <p className="text-gray-400 text-base mt-1">Gerencie os pedidos em aberto e novas comandas.</p>
                 </div>
-                <div className="flex gap-4">
-                    <StatCard
-                        icon="shopping_basket"
-                        label="Pedidos Ativos"
-                        value={activeOrders.length.toString()}
-                        change="+3"
-                        positive={true}
-                    />
-                    <StatCard
-                        icon="grid_view"
-                        label="Mesas Ocupadas"
-                        value="8 / 20"
-                        change="40%"
-                        positive={true}
+                <button
+                    onClick={() => setIsNewOrderModalOpen(true)}
+                    className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all"
+                >
+                    <PlusCircle size={20} />
+                    Novo Pedido
+                </button>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <StatCardCompact
+                    icon="shopping_basket"
+                    label="Pedidos Ativos"
+                    value={activeOrders.length}
+                />
+                <StatCardCompact
+                    icon="receipt_long"
+                    label="Total de Pedidos"
+                    value={orders.length}
+                />
+                <StatCardCompact
+                    icon="payments"
+                    label="Valor em Aberto"
+                    value={`R$ ${totalOpenValue.toFixed(2)}`}
+                    iconBgColor="bg-green-500/10"
+                    iconColor="text-green-500"
+                />
+            </div>
+
+            {/* Search */}
+            <div className="flex-1 max-w-md">
+                <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus-within:border-primary/50 transition-colors">
+                    <Search className="text-gray-400" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Buscar por cliente ou ID..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="bg-transparent border-none focus:ring-0 text-white placeholder:text-gray-500 flex-1 outline-none py-1"
                     />
                 </div>
             </div>
 
-            <div className="flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/10">
-                <div className="flex gap-3">
-                    <button className="bg-primary text-white px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/20">
-                        <span className="material-symbols-outlined text-sm">add</span>
-                        Novo Pedido
-                    </button>
-                    <button className="bg-white/5 text-white border border-white/10 px-6 py-2.5 rounded-lg font-medium hover:bg-white/10 transition-all">
-                        Mesas
-                    </button>
-                </div>
-                <div className="flex gap-2">
-                    <button className="p-2 text-gray-400 hover:text-white transition-colors">
-                        <span className="material-symbols-outlined">filter_list</span>
-                    </button>
-                </div>
-            </div>
-
+            {/* Content */}
             <div className="flex flex-col xl:flex-row gap-6 items-start">
-                <div className="flex-1 overflow-x-auto rounded-xl border border-white/10 bg-white/5">
+                {/* Orders Table */}
+                <div className="flex-1 overflow-x-auto rounded-2xl border border-white/10 bg-white/5 shadow-xl">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-white/5 text-gray-400 text-sm font-medium border-b border-white/10">
-                                <th className="px-6 py-4">ID do Pedido</th>
-                                <th className="px-6 py-4">Horário</th>
-                                <th className="px-6 py-4">Mesa/Cliente</th>
-                                <th className="px-6 py-4">Valor Total</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4 text-right">Ações</th>
+                            <tr className="bg-white/5 text-gray-400 text-xs font-bold border-b border-white/10 uppercase tracking-wider">
+                                <th className="px-6 py-5">Cliente</th>
+                                <th className="px-6 py-5">Horário</th>
+                                <th className="px-6 py-5">Valor Total</th>
+                                <th className="px-6 py-5">Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/10 text-sm">
-                            {activeOrders.map(order => (
+                            {filteredOrders.map(order => (
                                 <tr
                                     key={order.id}
                                     onClick={() => setSelectedOrder(order)}
-                                    className={`cursor-pointer transition-colors group ${selectedOrder?.id === order.id ? 'bg-primary/5 border-l-4 border-primary' : 'hover:bg-white/10'}`}
+                                    className={`cursor-pointer transition-colors group ${selectedOrder?.id === order.id
+                                        ? 'bg-primary/5 border-l-4 border-l-primary'
+                                        : 'hover:bg-white/[0.03]'
+                                        }`}
                                 >
-                                    <td className="px-6 py-4 text-white font-medium">{order.id}</td>
-                                    <td className="px-6 py-4 text-gray-400">{order.time}</td>
-                                    <td className="px-6 py-4 text-white">{order.client}</td>
-                                    <td className="px-6 py-4 text-white font-bold">R$ {order.total.toFixed(2)}</td>
-                                    <td className="px-6 py-4"><OrderStatusBadge status={order.status} /></td>
-                                    <td className="px-6 py-4 text-right">
-                                        <span className={`material-symbols-outlined transition-colors ${selectedOrder?.id === order.id ? 'text-primary' : 'text-gray-400 group-hover:text-primary'}`}>
-                                            edit
+                                    <td className="px-6 py-4">
+                                        <div className="flex flex-col">
+                                            <span className="text-white font-bold">{order.client_name}</span>
+                                            <span className="text-gray-500 text-xs">{order.id.slice(0, 8)}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-gray-400">
+                                        {order.created_at
+                                            ? new Date(order.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                                            : '—'
+                                        }
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="text-primary font-black font-numbers text-lg">
+                                            R$ {Number(order.total).toFixed(2)}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${STATUS_COLORS[order.status]}`}>
+                                            {order.status}
                                         </span>
                                     </td>
                                 </tr>
                             ))}
+                            {filteredOrders.length === 0 && (
+                                <tr>
+                                    <td colSpan={4} className="px-6 py-20 text-center text-gray-500 italic">
+                                        Nenhum pedido encontrado.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
 
+                {/* Order Details Sidebar */}
                 {selectedOrder && (
-                    <aside className="w-full xl:w-[400px] bg-white/5 border border-white/10 rounded-xl p-6 flex flex-col gap-6 sticky top-8">
-                        <div className="flex justify-between items-center text-white">
-                            <h3 className="text-xl font-bold">
-                                Detalhes do Pedido <span className="text-primary">{selectedOrder.id}</span>
-                            </h3>
+                    <aside className="w-full xl:w-[420px] bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col gap-5 sticky top-8">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <h3 className="text-xl font-bold text-white">
+                                    {selectedOrder.client_name}
+                                </h3>
+                                <p className="text-gray-500 text-xs mt-0.5">{selectedOrder.id.slice(0, 8)}</p>
+                            </div>
                             <button
                                 onClick={() => setSelectedOrder(null)}
-                                className="text-gray-400 hover:text-white"
+                                className="text-gray-400 hover:text-white transition-colors"
                             >
-                                <span className="material-symbols-outlined">close</span>
+                                <X size={20} />
                             </button>
                         </div>
 
-                        <div className="flex flex-col gap-4 text-gray-400">
-                            <div className="flex justify-between border-b border-white/5 pb-2">
-                                <span>Cliente/Local</span>
-                                <span className="text-white font-medium">{selectedOrder.client}</span>
-                            </div>
-                            <div className="flex justify-between border-b border-white/5 pb-2">
-                                <span>Abertura</span>
-                                <span className="text-white font-medium">{selectedOrder.time}</span>
-                            </div>
+                        <div className="flex items-center gap-2">
+                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${STATUS_COLORS[selectedOrder.status]}`}>
+                                {selectedOrder.status}
+                            </span>
+                            <span className="text-gray-500 text-xs">
+                                {selectedOrder.created_at
+                                    ? new Date(selectedOrder.created_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+                                    : ''
+                                }
+                            </span>
                         </div>
 
-                        <div className="mt-auto border-t border-white/10 pt-6 flex flex-col gap-4">
-                            <div className="flex justify-between items-center text-3xl font-black text-white py-2">
+                        {/* Items List */}
+                        <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto custom-scrollbar">
+                            {orderItems.length === 0 ? (
+                                <div className="py-8 text-center text-gray-500 italic text-sm">
+                                    Nenhum item adicionado.
+                                </div>
+                            ) : (
+                                orderItems.map(item => {
+                                    const typeBadge = item.menu_type ? ORDER_TYPE_BADGES[item.menu_type] : null;
+                                    return (
+                                        <div key={item.id} className="flex items-center justify-between p-3 rounded-xl bg-white/5 border border-white/5 group">
+                                            <div className="flex flex-col gap-1 flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-white font-medium text-sm truncate">{item.product_name}</span>
+                                                    {item.quantity > 1 && (
+                                                        <span className="text-gray-500 text-xs font-bold">x{item.quantity}</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {typeBadge && (
+                                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${typeBadge.color}`}>
+                                                            {typeBadge.icon}
+                                                            {typeBadge.badge}
+                                                        </span>
+                                                    )}
+                                                    {item.menu_name && !typeBadge && (
+                                                        <span className="text-gray-500 text-[10px]">{item.menu_name}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-primary font-bold font-numbers text-sm">
+                                                    R$ {(item.price * item.quantity).toFixed(2)}
+                                                </span>
+                                                {selectedOrder.status === 'Aberto' && (
+                                                    <button
+                                                        onClick={() => handleDeleteItem(item)}
+                                                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-all"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Add Item Button */}
+                        {selectedOrder.status === 'Aberto' && (
+                            <button
+                                onClick={() => setIsAddItemModalOpen(true)}
+                                className="flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-white/10 text-gray-400 hover:border-primary/50 hover:text-primary font-bold text-sm transition-all"
+                            >
+                                <Plus size={16} />
+                                Adicionar Item do Cardápio
+                            </button>
+                        )}
+
+                        {/* Total and Actions */}
+                        <div className="border-t border-white/10 pt-4 flex flex-col gap-3 mt-auto">
+                            <div className="flex justify-between items-center text-2xl font-black text-white py-2">
                                 <span>TOTAL</span>
-                                <span>R$ {selectedOrder.total.toFixed(2)}</span>
+                                <span className="font-numbers">R$ {Number(selectedOrder.total).toFixed(2)}</span>
                             </div>
-                            <div className="grid grid-cols-2 gap-3 mt-2">
-                                <button className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-4 py-3 rounded-lg font-bold transition-all">
-                                    <span className="material-symbols-outlined text-sm">print</span>
-                                    Imprimir
-                                </button>
-                                <button className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all">
-                                    <span className="material-symbols-outlined text-sm">payments</span>
-                                    Finalizar
-                                </button>
-                            </div>
+
+                            {selectedOrder.status === 'Aberto' && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={() => handleCancelOrder(selectedOrder)}
+                                        className="flex items-center justify-center gap-2 bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 px-4 py-3 rounded-xl font-bold transition-all text-sm"
+                                    >
+                                        <X size={16} />
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={() => handleFinalizeOrder(selectedOrder)}
+                                        className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 transition-all text-sm"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">payments</span>
+                                        Finalizar
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </aside>
                 )}
             </div>
+
+            {/* Modals */}
+            <NewOrderModal
+                isOpen={isNewOrderModalOpen}
+                onClose={() => setIsNewOrderModalOpen(false)}
+                onSave={handleCreateOrder}
+            />
+
+            {selectedOrder && (
+                <AddOrderItemModal
+                    isOpen={isAddItemModalOpen}
+                    onClose={() => setIsAddItemModalOpen(false)}
+                    onItemsAdded={handleItemsAdded}
+                    orderId={selectedOrder.id}
+                />
+            )}
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                isDestructive={confirmModal.isDestructive}
+                variant="toast"
+            />
         </main>
     );
 };

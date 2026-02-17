@@ -55,3 +55,28 @@ export interface MenuItem {
   custom_description?: string;
   product?: Product;
 }
+
+export type OrderStatus = 'Aberto' | 'Pago' | 'Cancelado';
+
+export interface Order {
+  id: string;
+  client_name: string;
+  status: OrderStatus;
+  total: number;
+  created_at?: string;
+  updated_at?: string;
+  order_items?: OrderItem[];
+}
+
+export interface OrderItem {
+  id: string;
+  order_id: string;
+  menu_id?: string | null;
+  menu_item_id?: string | null;
+  product_name: string;
+  price: number;
+  quantity: number;
+  menu_type?: string | null;
+  menu_name?: string | null;
+  created_at?: string;
+}

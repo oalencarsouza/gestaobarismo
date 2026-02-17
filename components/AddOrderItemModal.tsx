@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNotification } from '../contexts/NotificationContext';
-import { X, ChevronLeft, Loader2, Plus, Minus, ShoppingCart, Coffee, Percent, Copy, Sparkles } from 'lucide-react';
-import type { Menu, MenuItem, MenuType } from '../types';
+import { X, ChevronLeft, Loader2, Plus, Minus, ShoppingCart, Coffee, Percent, Copy, Sparkles, ArrowRight } from 'lucide-react';
+import type { Menu, MenuItem, MenuType, CartItem } from '../types';
 
 const TYPE_CONFIG: Record<MenuType, { label: string; color: string; icon: React.ReactNode; badge?: string; badgeColor?: string }> = {
     tradicional: { label: 'Tradicional', color: 'text-orange-400 bg-orange-500/10 border-orange-500/30', icon: <Coffee size={14} /> },
@@ -15,22 +15,13 @@ const TYPE_CONFIG: Record<MenuType, { label: string; color: string; icon: React.
 interface AddOrderItemModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onItemsAdded: () => void;
-    orderId: string;
-}
-
-interface CartItem {
-    menuItemId: string;
-    menuId: string;
-    productName: string;
-    price: number;
-    quantity: number;
-    menuType: MenuType;
-    menuName: string;
+    onItemsAdded?: () => void;
+    onCartConfirmed?: (items: CartItem[]) => void;
+    orderId?: string;
 }
 
 export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
-    isOpen, onClose, onItemsAdded, orderId
+    isOpen, onClose, onItemsAdded, onCartConfirmed, orderId
 }) => {
     const { showSuccess, showError } = useNotification();
     const [loading, setLoading] = useState(false);
@@ -140,6 +131,17 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
 
     const handleConfirm = async () => {
         if (cart.length === 0) return;
+
+        // If no orderId is provided, we are in "Cart Mode" (New Order Flow)
+        if (!orderId) {
+            if (onCartConfirmed) {
+                onCartConfirmed(cart);
+                onClose();
+            }
+            return;
+        }
+
+        // Existing logic for adding to an existing order
         setSaving(true);
         try {
             const items = cart.map(c => ({
@@ -180,7 +182,7 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
             if (updateError) throw updateError;
 
             showSuccess(`${cartCount} item(ns) adicionado(s) ao pedido!`);
-            onItemsAdded();
+            if (onItemsAdded) onItemsAdded();
             onClose();
         } catch (error) {
             console.error('Erro ao adicionar itens:', error);
@@ -318,8 +320,8 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
                             disabled={saving}
                             className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {saving ? <Loader2 className="animate-spin" size={20} /> : <ShoppingCart size={20} />}
-                            Adicionar ao Pedido
+                            {saving ? <Loader2 className="animate-spin" size={20} /> : (orderId ? <ShoppingCart size={20} /> : <ArrowRight size={20} />)}
+                            {orderId ? 'Adicionar ao Pedido' : 'Avançar p/ Cliente'}
                         </button>
                     </div>
                 )}

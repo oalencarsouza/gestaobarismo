@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -7,69 +6,47 @@ import { NewOrderModal } from '../NewOrderModal';
 import { AddOrderItemModal } from '../AddOrderItemModal';
 import { ConfirmModal } from '../ConfirmModal';
 import { PlusCircle, Search, Loader2, Trash2, ShoppingCart, Plus, X, Coffee, Percent, Copy, Sparkles } from 'lucide-react';
-import type { Order, OrderItem, OrderStatus, MenuType } from '../../types';
+import type { Order, OrderItem, OrderStatus, MenuType, CartItem } from '../../types';
+
+const STATUS_COLORS: Record<string, string> = {
+    'Aberto': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+    'Pago': 'bg-green-500/10 text-green-500 border-green-500/20',
+    'Cancelado': 'bg-red-500/10 text-red-500 border-red-500/20'
+};
 
 const ORDER_TYPE_BADGES: Record<string, { badge: string; color: string; icon: React.ReactNode }> = {
-    quantidade: { badge: 'Em dobro!', color: 'text-blue-400 bg-blue-500/10 border-blue-500/30', icon: <Copy size={12} /> },
-    desconto: { badge: 'Com desconto!', color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30', icon: <Percent size={12} /> },
-    especial: { badge: 'Especial!', color: 'text-purple-400 bg-purple-500/10 border-purple-500/30', icon: <Sparkles size={12} /> },
+    'promotion': { badge: 'Em dobro!', color: 'border-purple-500 text-purple-400 bg-purple-500/10', icon: <Sparkles size={10} /> },
+    'discount': { badge: 'Com desconto!', color: 'border-orange-500 text-orange-400 bg-orange-500/10', icon: <Percent size={10} /> },
 };
 
-const STATUS_COLORS: Record<OrderStatus, string> = {
-    Aberto: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
-    Pago: 'text-green-400 bg-green-500/10 border-green-500/30',
-    Cancelado: 'text-red-400 bg-red-500/10 border-red-500/30',
-};
-
-interface OrderViewProps {
-    triggerNewOrder?: boolean;
-    onNewOrderTriggered?: () => void;
-}
-
-export const OrderView: React.FC<OrderViewProps> = ({ triggerNewOrder, onNewOrderTriggered }) => {
+export const OrderView = () => {
     const { showSuccess, showError } = useNotification();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
     const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-    const [searchTerm, setSearchTerm] = useState('');
-
-    // Modal States
     const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
     const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
+
+    // Initialize confirmModal correctly
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
         title: string;
         message: string;
-        onConfirm: () => void;
         isDestructive: boolean;
+        onConfirm: () => Promise<void> | void;
     }>({
         isOpen: false,
         title: '',
         message: '',
-        onConfirm: () => { },
         isDestructive: false,
+        onConfirm: () => { }
     });
 
-    useEffect(() => {
-        fetchOrders();
-    }, []);
-
-    useEffect(() => {
-        if (selectedOrder) {
-            fetchOrderItems(selectedOrder.id);
-        }
-    }, [selectedOrder]);
-
-    useEffect(() => {
-        if (triggerNewOrder) {
-            setIsNewOrderModalOpen(true);
-            if (onNewOrderTriggered) onNewOrderTriggered();
-        }
-    }, [triggerNewOrder, onNewOrderTriggered]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [tempCart, setTempCart] = useState<CartItem[]>([]);
 
     const fetchOrders = async () => {
-        setLoading(true);
         try {
             const { data, error } = await supabase
                 .from('orders')
@@ -80,7 +57,7 @@ export const OrderView: React.FC<OrderViewProps> = ({ triggerNewOrder, onNewOrde
             setOrders(data || []);
         } catch (error) {
             console.error('Erro ao buscar pedidos:', error);
-            showError('Não foi possível carregar os pedidos.');
+            showError('Erro ao carregar pedidos.');
         } finally {
             setLoading(false);
         }
@@ -91,29 +68,72 @@ export const OrderView: React.FC<OrderViewProps> = ({ triggerNewOrder, onNewOrde
             const { data, error } = await supabase
                 .from('order_items')
                 .select('*')
-                .eq('order_id', orderId)
-                .order('created_at', { ascending: true });
+                .eq('order_id', orderId);
 
             if (error) throw error;
             setOrderItems(data || []);
         } catch (error) {
-            console.error('Erro ao buscar itens:', error);
+            console.error('Erro ao buscar itens do pedido:', error);
+            showError('Erro ao carregar itens.');
         }
     };
 
+    useEffect(() => {
+        fetchOrders();
+    }, []);
+
     const handleCreateOrder = async (clientName: string, clientPhone: string) => {
         try {
-            const { data, error } = await supabase
+            // 1. Create Order
+            const { data: orderData, error: orderError } = await supabase
                 .from('orders')
-                .insert([{ client_name: clientName, client_phone: clientPhone }])
+                .insert([{
+                    client_name: clientName,
+                    client_phone: clientPhone,
+                    total: 0 // Will be updated
+                }])
                 .select();
 
-            if (error) throw error;
-            if (data && data.length > 0) {
-                showSuccess('Pedido criado com sucesso!');
-                await fetchOrders();
-                setSelectedOrder(data[0]);
+            if (orderError) throw orderError;
+            if (!orderData || orderData.length === 0) throw new Error('Erro ao criar pedido');
+
+            const newOrder = orderData[0];
+
+            // 2. Insert Items if any
+            if (tempCart.length > 0) {
+                const items = tempCart.map(c => ({
+                    order_id: newOrder.id,
+                    menu_id: c.menuId,
+                    menu_item_id: c.menuItemId,
+                    product_name: c.productName,
+                    price: c.price,
+                    quantity: c.quantity,
+                    menu_type: c.menuType,
+                    menu_name: c.menuName,
+                }));
+
+                const { error: itemsError } = await supabase
+                    .from('order_items')
+                    .insert(items);
+
+                if (itemsError) throw itemsError;
+
+                // 3. Update Order Total
+                const total = tempCart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+                const { error: updateError } = await supabase
+                    .from('orders')
+                    .update({ total: total })
+                    .eq('id', newOrder.id);
+
+                if (updateError) throw updateError;
             }
+
+            showSuccess('Pedido criado com sucesso!');
+            await fetchOrders();
+            setSelectedOrder(newOrder);
+            setTempCart([]); // Clear temp cart
+
         } catch (error) {
             console.error('Erro ao criar pedido:', error);
             showError('Erro ao criar o pedido.');
@@ -263,7 +283,10 @@ export const OrderView: React.FC<OrderViewProps> = ({ triggerNewOrder, onNewOrde
                     <p className="text-gray-400 text-base mt-1">Gerencie os pedidos em aberto e novas comandas.</p>
                 </div>
                 <button
-                    onClick={() => setIsNewOrderModalOpen(true)}
+                    onClick={() => {
+                        setTempCart([]);
+                        setIsAddItemModalOpen(true);
+                    }}
                     className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all"
                 >
                     <PlusCircle size={20} />
@@ -490,21 +513,22 @@ export const OrderView: React.FC<OrderViewProps> = ({ triggerNewOrder, onNewOrde
                 )}
             </div>
 
-            {/* Modals */}
             <NewOrderModal
                 isOpen={isNewOrderModalOpen}
                 onClose={() => setIsNewOrderModalOpen(false)}
                 onSave={handleCreateOrder}
             />
 
-            {selectedOrder && (
-                <AddOrderItemModal
-                    isOpen={isAddItemModalOpen}
-                    onClose={() => setIsAddItemModalOpen(false)}
-                    onItemsAdded={handleItemsAdded}
-                    orderId={selectedOrder.id}
-                />
-            )}
+            <AddOrderItemModal
+                isOpen={isAddItemModalOpen}
+                onClose={() => setIsAddItemModalOpen(false)}
+                onItemsAdded={handleItemsAdded}
+                onCartConfirmed={(items) => {
+                    setTempCart(items);
+                    setIsNewOrderModalOpen(true);
+                }}
+                orderId={selectedOrder && !isNewOrderModalOpen && tempCart.length === 0 ? selectedOrder.id : undefined}
+            />
 
             <ConfirmModal
                 isOpen={confirmModal.isOpen}

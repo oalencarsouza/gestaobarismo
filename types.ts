@@ -81,3 +81,13 @@ export interface OrderItem {
   menu_name?: string | null;
   created_at?: string;
 }
+
+export interface CartItem {
+  menuItemId: string;
+  menuId: string;
+  productName: string;
+  price: number;
+  quantity: number;
+  menuType: MenuType;
+  menuName: string;
+}

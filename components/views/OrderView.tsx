@@ -663,7 +663,8 @@ export const OrderView: React.FC<OrderViewProps> = ({
                                                 {selectedOrder.status === 'Aberto' && (
                                                     <button
                                                         onClick={() => handleDeleteItem(item)}
-                                                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-all"
+                                                        disabled={isEditingTotal}
+                                                        className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-all disabled:opacity-20 disabled:cursor-not-allowed"
                                                     >
                                                         <Trash2 size={14} />
                                                     </button>
@@ -679,7 +680,8 @@ export const OrderView: React.FC<OrderViewProps> = ({
                         {selectedOrder.status === 'Aberto' && (
                             <button
                                 onClick={() => setIsAddItemModalOpen(true)}
-                                className="flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-white/10 text-gray-400 hover:border-primary/50 hover:text-primary font-bold text-sm transition-all"
+                                disabled={isEditingTotal}
+                                className="flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 border-dashed border-white/10 text-gray-400 hover:border-primary/50 hover:text-primary font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <Plus size={16} />
                                 Adicionar Item do Cardápio
@@ -738,14 +740,16 @@ export const OrderView: React.FC<OrderViewProps> = ({
                                 <div className="grid grid-cols-2 gap-3">
                                     <button
                                         onClick={() => handleCancelOrder(selectedOrder)}
-                                        className="flex items-center justify-center gap-2 bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 px-4 py-3 rounded-xl font-bold transition-all text-sm"
+                                        disabled={isEditingTotal}
+                                        className="flex items-center justify-center gap-2 bg-white/5 hover:bg-red-500/10 text-gray-400 hover:text-red-400 border border-white/10 hover:border-red-500/30 px-4 py-3 rounded-xl font-bold transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <X size={16} />
                                         Cancelar
                                     </button>
                                     <button
                                         onClick={() => handleFinalizeOrder(selectedOrder)}
-                                        className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 transition-all text-sm"
+                                        disabled={isEditingTotal}
+                                        className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-3 rounded-xl font-bold shadow-lg shadow-primary/20 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         <span className="material-symbols-outlined text-sm">payments</span>
                                         Finalizar

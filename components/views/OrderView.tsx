@@ -298,25 +298,47 @@ export const OrderView: React.FC<OrderViewProps> = ({
 
     const activeOrders = orders.filter(o => o.status === 'Aberto');
 
-    // Calculate Daily Cash: Total of 'Pago' orders within business hours (18h-00h) 
-    // with a 1h margin (17h - 01h next day).
+    // Calculate Daily Cash: Based on business hours schedule with a 1h margin
+    // Reference: Seg/Ter: 18-00 | Qua: 18-01 | Qui: 18-02 | Sex: 17-04
     const dailyCashValue = orders
         .filter(o => {
             if (o.status !== 'Pago' || !o.updated_at) return false;
 
             const updatedDate = new Date(o.updated_at);
             const now = new Date();
+            const dayOfWeek = now.getDay(); // 0 (Dom) to 6 (Sab)
 
-            // Define business session: 17:00 of the CURRENT day to 01:00 of the NEXT day
+            // Dynamic hours based on reference image
+            let openH = 18;
+            let closeH = 0;
+
+            if (dayOfWeek === 1 || dayOfWeek === 2) { // Seg, Ter
+                openH = 18; closeH = 0;
+            } else if (dayOfWeek === 3) { // Qua
+                openH = 18; closeH = 1;
+            } else if (dayOfWeek === 4) { // Qui
+                openH = 18; closeH = 2;
+            } else if (dayOfWeek === 5) { // Sex
+                openH = 17; closeH = 4;
+            } else if (dayOfWeek === 6 || dayOfWeek === 0) { // Sab, Dom
+                openH = 17; closeH = 4; // Defaulting to weekend/Friday hours
+            }
+
+            // Apply 1-hour margin
+            const startH = openH - 1;
+            const endH = closeH + 1;
+
             const sessionStart = new Date(now);
-            sessionStart.setHours(17, 0, 0, 0);
+            sessionStart.setHours(startH, 0, 0, 0);
 
             const sessionEnd = new Date(now);
-            sessionEnd.setDate(sessionEnd.getDate() + 1);
-            sessionEnd.setHours(1, 0, 0, 0);
+            if (endH <= startH) {
+                sessionEnd.setDate(sessionEnd.getDate() + 1);
+            }
+            sessionEnd.setHours(endH, 0, 0, 0);
 
-            // If it's currently early morning (before 01:00), we are still in "yesterday's" session
-            if (now.getHours() < 1) {
+            // If current time is early morning and within the margin of the previous session
+            if (now.getHours() < endH) {
                 sessionStart.setDate(sessionStart.getDate() - 1);
                 sessionEnd.setDate(sessionEnd.getDate() - 1);
             }

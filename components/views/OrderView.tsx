@@ -19,7 +19,15 @@ const ORDER_TYPE_BADGES: Record<string, { badge: string; color: string; icon: Re
     'discount': { badge: 'Com desconto!', color: 'border-orange-500 text-orange-400 bg-orange-500/10', icon: <Percent size={10} /> },
 };
 
-export const OrderView = () => {
+interface OrderViewProps {
+    triggerNewOrder?: boolean;
+    onNewOrderTriggered?: () => void;
+}
+
+export const OrderView: React.FC<OrderViewProps> = ({
+    triggerNewOrder,
+    onNewOrderTriggered
+}) => {
     const { showSuccess, showError } = useNotification();
     const [orders, setOrders] = useState<Order[]>([]);
     const [loading, setLoading] = useState(true);
@@ -81,6 +89,15 @@ export const OrderView = () => {
     useEffect(() => {
         fetchOrders();
     }, []);
+
+    useEffect(() => {
+        if (triggerNewOrder) {
+            setSelectedOrder(null);
+            setTempCart([]);
+            setIsAddItemModalOpen(true);
+            if (onNewOrderTriggered) onNewOrderTriggered();
+        }
+    }, [triggerNewOrder]);
 
     const handleCreateOrder = async (clientName: string, clientPhone: string) => {
         try {

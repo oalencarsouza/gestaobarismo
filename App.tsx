@@ -19,9 +19,16 @@ export type View = 'history' | 'profile' | 'events' | 'dashboard' | 'stock' | 'r
 
 const App: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-    const [view, setView] = useState<View>('dashboard');
+    const [view, setView] = useState<View>(() => {
+        const savedView = localStorage.getItem('activeView') as View;
+        return savedView || 'orders';
+    });
     const [showWelcomeModal, setShowWelcomeModal] = useState(false);
     const [triggerNewOrder, setTriggerNewOrder] = useState(false);
+
+    useEffect(() => {
+        localStorage.setItem('activeView', view);
+    }, [view]);
 
     useEffect(() => {
         const loggedIn = localStorage.getItem('isLoggedIn') === 'true';

@@ -101,6 +101,7 @@ export const OrderView: React.FC = () => {
                 showSuccess('Pedido criado com sucesso!');
                 await fetchOrders();
                 setSelectedOrder(data[0]);
+                setIsAddItemModalOpen(true);
             }
         } catch (error) {
             console.error('Erro ao criar pedido:', error);
@@ -205,10 +206,24 @@ export const OrderView: React.FC = () => {
         });
     };
 
-    const handleItemsAdded = () => {
+    const handleItemsAdded = async () => {
         if (selectedOrder) {
             fetchOrderItems(selectedOrder.id);
-            fetchOrders();
+
+            // Fetch updated orders to get new total
+            const { data, error } = await supabase
+                .from('orders')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (!error && data) {
+                setOrders(data);
+                // Update selected order with new data (containing new total)
+                const updatedOrder = data.find(o => o.id === selectedOrder.id);
+                if (updatedOrder) {
+                    setSelectedOrder(updatedOrder);
+                }
+            }
         }
     };
 

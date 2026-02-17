@@ -89,11 +89,11 @@ export const OrderView: React.FC = () => {
         }
     };
 
-    const handleCreateOrder = async (clientName: string) => {
+    const handleCreateOrder = async (clientName: string, clientPhone: string) => {
         try {
             const { data, error } = await supabase
                 .from('orders')
-                .insert([{ client_name: clientName }])
+                .insert([{ client_name: clientName, client_phone: clientPhone }])
                 .select();
 
             if (error) throw error;
@@ -306,7 +306,7 @@ export const OrderView: React.FC = () => {
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col">
                                             <span className="text-white font-bold">{order.client_name}</span>
-                                            <span className="text-gray-500 text-xs">{order.id.slice(0, 8)}</span>
+                                            <span className="text-gray-500 text-xs">{order.client_phone || order.id.slice(0, 8)}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-gray-400">
@@ -346,6 +346,12 @@ export const OrderView: React.FC = () => {
                                 <h3 className="text-xl font-bold text-white">
                                     {selectedOrder.client_name}
                                 </h3>
+                                {selectedOrder.client_phone && (
+                                    <p className="text-gray-400 text-sm mt-0.5 flex items-center gap-1">
+                                        <span className="material-symbols-outlined" style={{ fontSize: '14px' }}>phone</span>
+                                        {selectedOrder.client_phone}
+                                    </p>
+                                )}
                                 <p className="text-gray-500 text-xs mt-0.5">{selectedOrder.id.slice(0, 8)}</p>
                             </div>
                             <button

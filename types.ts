@@ -61,6 +61,7 @@ export type OrderStatus = 'Aberto' | 'Pago' | 'Cancelado';
 export interface Order {
   id: string;
   client_name: string;
+  client_phone?: string;
   status: OrderStatus;
   total: number;
   created_at?: string;

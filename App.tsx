@@ -52,6 +52,7 @@ const App: React.FC = () => {
 
     const handleWelcomeNewOrder = () => {
         setView('orders');
+        setShowWelcomeModal(false);
         setTriggerNewOrder(true);
     };
 

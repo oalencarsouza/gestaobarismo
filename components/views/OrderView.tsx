@@ -113,7 +113,6 @@ export const OrderView: React.FC<OrderViewProps> = ({ triggerNewOrder, onNewOrde
                 showSuccess('Pedido criado com sucesso!');
                 await fetchOrders();
                 setSelectedOrder(data[0]);
-                setIsAddItemModalOpen(true);
             }
         } catch (error) {
             console.error('Erro ao criar pedido:', error);

@@ -82,7 +82,6 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
                         </label>
                         <input
                             type="tel"
-                            required
                             value={clientPhone}
                             onChange={handlePhoneChange}
                             placeholder="(XX) XXXXX-XXXX"
@@ -101,7 +100,7 @@ export const NewOrderModal: React.FC<NewOrderModalProps> = ({
                         </button>
                         <button
                             type="submit"
-                            disabled={loading || !clientName.trim() || !clientPhone.trim()}
+                            disabled={loading || !clientName.trim()}
                             className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? <Loader2 className="animate-spin" size={20} /> : <UserPlus size={20} />}

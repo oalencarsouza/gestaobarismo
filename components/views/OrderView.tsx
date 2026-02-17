@@ -53,6 +53,8 @@ export const OrderView: React.FC<OrderViewProps> = ({
 
     const [searchTerm, setSearchTerm] = useState('');
     const [tempCart, setTempCart] = useState<CartItem[]>([]);
+    const [activeStatusFilter, setActiveStatusFilter] = useState<OrderStatus | 'all'>('all');
+
 
     const fetchOrders = async () => {
         try {
@@ -367,10 +369,12 @@ export const OrderView: React.FC<OrderViewProps> = ({
         })
         .reduce((sum, o) => sum + Number(o.total), 0);
 
-    const filteredOrders = orders.filter(o =>
-        o.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.id.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredOrders = orders.filter(o => {
+        const matchesSearch = o.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            o.id.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = activeStatusFilter === 'all' || o.status === activeStatusFilter;
+        return matchesSearch && matchesStatus;
+    });
 
     if (loading) {
         return (
@@ -407,11 +411,15 @@ export const OrderView: React.FC<OrderViewProps> = ({
                     icon="shopping_basket"
                     label="Pedidos Ativos"
                     value={activeOrders.length}
+                    onClick={() => setActiveStatusFilter(activeStatusFilter === 'Aberto' ? 'all' : 'Aberto')}
+                    isActive={activeStatusFilter === 'Aberto'}
                 />
                 <StatCardCompact
                     icon="receipt_long"
                     label="Total de Pedidos"
                     value={orders.length}
+                    onClick={() => setActiveStatusFilter('all')}
+                    isActive={activeStatusFilter === 'all'}
                 />
                 <StatCardCompact
                     icon="payments"

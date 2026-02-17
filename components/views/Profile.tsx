@@ -59,13 +59,13 @@ export const Profile: React.FC = () => {
     const { showSuccess, showError } = useNotification();
     const [isSaving, setIsSaving] = useState(false);
     const [hours, setHours] = useState<DayConfig[]>([
-        { day: "Segunda", open: "18:00", close: "00:00", enabled: true },
-        { day: "Terça", open: "18:00", close: "00:00", enabled: true },
-        { day: "Quarta", open: "18:00", close: "01:00", enabled: true },
-        { day: "Quinta", open: "18:00", close: "02:00", enabled: true },
-        { day: "Sexta", open: "17:00", close: "04:00", enabled: true },
-        { day: "Sábado", open: "17:00", close: "04:00", enabled: true },
-        { day: "Domingo", open: "17:00", close: "00:00", enabled: false },
+        { day: "Segunda", open: "12:00", close: "02:00", enabled: true },
+        { day: "Terça", open: "12:00", close: "02:00", enabled: true },
+        { day: "Quarta", open: "12:00", close: "02:00", enabled: true },
+        { day: "Quinta", open: "12:00", close: "02:00", enabled: true },
+        { day: "Sexta", open: "12:00", close: "02:00", enabled: true },
+        { day: "Sábado", open: "12:00", close: "02:00", enabled: true },
+        { day: "Domingo", open: "12:00", close: "02:00", enabled: true },
     ]);
 
     useEffect(() => {

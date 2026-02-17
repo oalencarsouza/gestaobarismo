@@ -5,7 +5,7 @@ import { StatCardCompact } from '../StatCard';
 import { NewOrderModal } from '../NewOrderModal';
 import { AddOrderItemModal } from '../AddOrderItemModal';
 import { ConfirmModal } from '../ConfirmModal';
-import { PlusCircle, Search, Loader2, Trash2, ShoppingCart, Plus, X, Coffee, Percent, Copy, Sparkles } from 'lucide-react';
+import { PlusCircle, Search, Loader2, Trash2, ShoppingCart, Plus, X, Coffee, Percent, Copy, Sparkles, ChevronLeft, ChevronRight, Pencil, Check } from 'lucide-react';
 import type { Order, OrderItem, OrderStatus, MenuType, CartItem } from '../../types';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -55,6 +55,14 @@ export const OrderView: React.FC<OrderViewProps> = ({
     const [tempCart, setTempCart] = useState<CartItem[]>([]);
     const [activeStatusFilter, setActiveStatusFilter] = useState<OrderStatus | 'all'>('all');
 
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
+
+    // Edit Total State
+    const [isEditingTotal, setIsEditingTotal] = useState(false);
+    const [editingTotalValue, setEditingTotalValue] = useState('');
+
 
     const fetchOrders = async () => {
         try {
@@ -95,10 +103,17 @@ export const OrderView: React.FC<OrderViewProps> = ({
     useEffect(() => {
         if (selectedOrder) {
             fetchOrderItems(selectedOrder.id);
+            setEditingTotalValue(selectedOrder.total.toString());
+            setIsEditingTotal(false);
         } else {
             setOrderItems([]);
+            setIsEditingTotal(false);
         }
     }, [selectedOrder?.id]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, activeStatusFilter]);
 
     useEffect(() => {
         if (triggerNewOrder) {
@@ -316,6 +331,34 @@ export const OrderView: React.FC<OrderViewProps> = ({
         });
     };
 
+    const handleSaveTotal = async () => {
+        if (!selectedOrder) return;
+        const newTotal = parseFloat(editingTotalValue.replace(',', '.'));
+
+        if (isNaN(newTotal)) {
+            showError('Valor inválido.');
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('orders')
+                .update({ total: newTotal, updated_at: new Date().toISOString() })
+                .eq('id', selectedOrder.id);
+
+            if (error) throw error;
+
+            setOrders(prev => prev.map(o =>
+                o.id === selectedOrder.id ? { ...o, total: newTotal } : o
+            ));
+            setSelectedOrder(prev => prev ? { ...prev, total: newTotal } : null);
+            setIsEditingTotal(false);
+            showSuccess('Valor total atualizado!');
+        } catch (error) {
+            showError('Erro ao atualizar valor.');
+        }
+    };
+
     const handleItemsAdded = async () => {
         if (selectedOrder) {
             fetchOrderItems(selectedOrder.id);
@@ -375,6 +418,12 @@ export const OrderView: React.FC<OrderViewProps> = ({
         const matchesStatus = activeStatusFilter === 'all' || o.status === activeStatusFilter;
         return matchesSearch && matchesStatus;
     });
+
+    // Pagination Logic
+    const totalItems = filteredOrders.length;
+    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginatedOrders = filteredOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
     if (loading) {
         return (
@@ -458,7 +507,7 @@ export const OrderView: React.FC<OrderViewProps> = ({
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/10 text-sm">
-                            {filteredOrders.map(order => (
+                            {paginatedOrders.map(order => (
                                 <tr
                                     key={order.id}
                                     onClick={() => setSelectedOrder(order)}
@@ -491,7 +540,7 @@ export const OrderView: React.FC<OrderViewProps> = ({
                                     </td>
                                 </tr>
                             ))}
-                            {filteredOrders.length === 0 && (
+                            {paginatedOrders.length === 0 && (
                                 <tr>
                                     <td colSpan={4} className="px-6 py-20 text-center text-gray-500 italic">
                                         Nenhum pedido encontrado.
@@ -500,6 +549,45 @@ export const OrderView: React.FC<OrderViewProps> = ({
                             )}
                         </tbody>
                     </table>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="p-4 border-t border-white/10 flex items-center justify-between text-sm text-gray-400">
+                            <span className="hidden sm:inline">
+                                Página {currentPage} de {totalPages}
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className="p-2 rounded-lg bg-white/5 disabled:opacity-30 hover:bg-white/10 transition-colors"
+                                >
+                                    <ChevronLeft size={18} />
+                                </button>
+                                <div className="flex items-center gap-1">
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                        <button
+                                            key={page}
+                                            onClick={() => setCurrentPage(page)}
+                                            className={`w-8 h-8 rounded-lg font-bold flex items-center justify-center transition-all ${currentPage === page
+                                                ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                                : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
+                                                }`}
+                                        >
+                                            {page}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages}
+                                    className="p-2 rounded-lg bg-white/5 disabled:opacity-30 hover:bg-white/10 transition-colors"
+                                >
+                                    <ChevronRight size={18} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Order Details Sidebar */}
@@ -600,9 +688,50 @@ export const OrderView: React.FC<OrderViewProps> = ({
 
                         {/* Total and Actions */}
                         <div className="border-t border-white/10 pt-4 flex flex-col gap-3 mt-auto">
-                            <div className="flex justify-between items-center text-2xl font-black text-white py-2">
-                                <span>TOTAL</span>
-                                <span className="font-numbers">R$ {Number(selectedOrder.total).toFixed(2)}</span>
+                            <div className="flex justify-between items-center py-2">
+                                <span className="text-2xl font-black text-white">TOTAL</span>
+                                <div className="flex items-center gap-2">
+                                    {isEditingTotal ? (
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={editingTotalValue}
+                                                onChange={(e) => setEditingTotalValue(e.target.value)}
+                                                autoFocus
+                                                className="w-24 bg-white/10 border border-primary/50 rounded-lg px-2 py-1 text-white text-xl font-numbers font-bold outline-none ring-2 ring-primary/20"
+                                            />
+                                            <button
+                                                onClick={handleSaveTotal}
+                                                className="p-1.5 rounded-lg bg-green-500/20 text-green-500 hover:bg-green-500/30 transition-all"
+                                            >
+                                                <Check size={18} />
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    setIsEditingTotal(false);
+                                                    setEditingTotalValue(selectedOrder.total.toString());
+                                                }}
+                                                className="p-1.5 rounded-lg bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-all"
+                                            >
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <span className="text-2xl font-black text-white font-numbers">
+                                                R$ {Number(selectedOrder.total).toFixed(2)}
+                                            </span>
+                                            {selectedOrder.status === 'Aberto' && (
+                                                <button
+                                                    onClick={() => setIsEditingTotal(true)}
+                                                    className="p-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-primary transition-all"
+                                                >
+                                                    <Pencil size={18} />
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
                             </div>
 
                             {selectedOrder.status === 'Aberto' && (

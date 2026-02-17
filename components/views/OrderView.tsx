@@ -369,51 +369,114 @@ export const OrderView: React.FC<OrderViewProps> = ({
         }
 
         const itemsHtml = orderItems.map(item => `
-            <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px;">
-                <span style="flex: 1;">${item.product_name} x${item.quantity}</span>
-                <span style="font-weight: bold;">R$ ${(item.price * item.quantity).toFixed(2)}</span>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 2px; font-size: 14px; font-weight: 500;">
+                <span style="flex: 2;">${item.product_name}</span>
+                <span style="flex: 1; text-align: center;">x${item.quantity}</span>
+                <span style="flex: 2; text-align: right;">R$ ${(item.price * item.quantity).toFixed(2)}</span>
             </div>
+            <div style="border-bottom: 1px solid #e0e0e0; margin: 4px 0;"></div>
         `).join('');
 
-        const orderInfo = `
-            <div style="border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; text-align: center;">
-                <h1 style="margin: 0; font-size: 18px;">GESTBARISMO</h1>
-                <p style="margin: 5px 0; font-size: 12px;">Comprovante de Pedido</p>
-                <p style="margin: 2px 0; font-size: 10px;">ID: #${selectedOrder.id.slice(0, 8).toUpperCase()}</p>
-                <p style="margin: 2px 0; font-size: 10px;">Data: ${new Date(selectedOrder.created_at!).toLocaleString('pt-BR')}</p>
-            </div>
-            <div style="margin-bottom: 10px; font-size: 12px;">
-                <strong>Cliente:</strong> ${selectedOrder.client_name}<br>
-                ${selectedOrder.client_phone ? `<strong>Tel:</strong> ${selectedOrder.client_phone}` : ''}
-            </div>
-        `;
-
-        const totalInfo = `
-            <div style="border-top: 1px dashed #000; padding-top: 10px; margin-top: 10px;">
-                <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: bold;">
-                    <span>TOTAL</span>
-                    <span>R$ ${Number(selectedOrder.total).toFixed(2)}</span>
-                </div>
-                <p style="text-align: center; font-size: 10px; margin-top: 20px;">Obrigado pela preferência!</p>
+        const decorativeLine = `
+            <div style="text-align: center; margin: 10px 0;">
+                <svg width="100%" height="10" viewBox="0 0 300 10" preserveAspectRatio="none">
+                    <path d="M0 5 Q 15 0, 30 5 T 60 5 T 90 5 T 120 5 T 150 5 T 180 5 T 210 5 T 240 5 T 270 5 T 300 5" fill="none" stroke="black" stroke-width="1.5"/>
+                </svg>
             </div>
         `;
 
         printWindow.document.write(`
             <html>
                 <head>
-                    <title>Impressão de Pedido - GESTBARISMO</title>
+                    <title>Impressão - GESTBARISMO</title>
                     <style>
-                        body { font-family: 'Courier New', Courier, monospace; width: 80mm; margin: 0 auto; padding: 20px; color: #000; }
+                        @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Playfair+Display:ital,wght@1,700&display=swap');
+                        body { 
+                            font-family: 'Courier New', Courier, monospace; 
+                            width: 80mm; 
+                            margin: 0 auto; 
+                            padding: 10px; 
+                            color: #000;
+                            background: #fff;
+                        }
+                        .title { 
+                            font-family: 'Oswald', sans-serif; 
+                            font-size: 24px; 
+                            font-weight: 900; 
+                            text-align: center; 
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                        }
+                        .section-title {
+                            font-family: 'Oswald', sans-serif;
+                            font-size: 22px;
+                            font-weight: 900;
+                            text-transform: uppercase;
+                            margin: 15px 0 5px 0;
+                        }
+                        .info-row {
+                            font-size: 16px;
+                            margin-bottom: 5px;
+                            display: flex;
+                            align-items: center;
+                        }
+                        .total-row {
+                            font-family: 'Oswald', sans-serif;
+                            display: flex;
+                            justify-content: space-between;
+                            font-size: 28px;
+                            font-weight: 900;
+                            margin-top: 10px;
+                            text-transform: uppercase;
+                        }
+                        .thanks {
+                            font-family: 'Playfair Display', serif;
+                            font-style: italic;
+                            text-align: center;
+                            font-size: 18px;
+                            margin-top: 25px;
+                        }
+                        .logo-container {
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            margin-bottom: 20px;
+                        }
                         @media print {
-                            body { width: 100%; margin: 0; padding: 10px; }
+                            body { width: 100%; margin: 0; padding: 5px; }
                         }
                     </style>
                 </head>
                 <body>
-                    ${orderInfo}
-                    <div style="margin-bottom: 5px; font-weight: bold; font-size: 12px; border-bottom: 1px solid #eee; padding-bottom: 5px;">ITENS:</div>
+                    <div class="logo-container">
+                         <!-- Simple Black & White representation of the logo structure -->
+                         <div style="border: 3px solid black; border-radius: 50%; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; position: relative;">
+                            <div style="font-family: 'Oswald', sans-serif; font-weight: 900; font-size: 14px; text-align: center; line-height: 1;">
+                                BARISMO<br><span style="font-size: 6px;">DRINNS & PORÇÕES</span>
+                            </div>
+                         </div>
+                    </div>
+
+                    <div class="title">Comprovante de Pedido</div>
+                    
+                    ${decorativeLine}
+
+                    <div class="info-row"><strong>👤 CLIENTE:</strong>&nbsp; ${selectedOrder.client_name}</div>
+                    ${selectedOrder.client_phone ? `<div class="info-row"><strong>📞 TEL:</strong>&nbsp; ${selectedOrder.client_phone}</div>` : ''}
+                    <div class="info-row" style="font-size: 10px; color: #666;">ID: #${selectedOrder.id.slice(0, 8).toUpperCase()} | ${new Date(selectedOrder.created_at!).toLocaleTimeString('pt-BR')}</div>
+
+                    ${decorativeLine}
+
+                    <div class="section-title">ITENS:</div>
                     ${itemsHtml}
-                    ${totalInfo}
+
+                    <div class="total-row">
+                        <span>TOTAL</span>
+                        <span>R$ ${Number(selectedOrder.total).toFixed(2)}</span>
+                    </div>
+
+                    <div class="thanks">Obrigado pela preferência!</div>
+                    
                     <script>
                         window.onload = () => {
                             window.print();

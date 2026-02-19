@@ -66,9 +66,22 @@ export const OrderView: React.FC<OrderViewProps> = ({
 
     const fetchOrders = async () => {
         try {
+            // Business Session logic: 11:00 AM to 03:00 AM (next day)
+            const now = new Date();
+            const marginOpen = 11;
+            const marginClose = 3;
+
+            const sessionStart = new Date(now);
+            sessionStart.setHours(marginOpen, 0, 0, 0);
+
+            if (now.getHours() < marginClose) {
+                sessionStart.setDate(sessionStart.getDate() - 1);
+            }
+
             const { data, error } = await supabase
                 .from('orders')
                 .select('*')
+                .gte('created_at', sessionStart.toISOString())
                 .order('created_at', { ascending: false });
 
             if (error) throw error;

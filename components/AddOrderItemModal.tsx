@@ -65,7 +65,7 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
         try {
             const { data, error } = await supabase
                 .from('menu_items')
-                .select('*, product:products(*, stock:stock(quantity, unit))')
+                .select('*, product:products(*, stock(*))')
                 .eq('menu_id', menu.id);
 
             if (error) throw error;
@@ -273,10 +273,10 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
                                             <div className="flex items-center gap-3">
                                                 <span className="text-primary font-bold font-numbers text-lg">R$ {item.price.toFixed(2)}</span>
                                                 {item.product && (
-                                                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider ${(item.product as any).stock?.[0]?.quantity > 0
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider ${(item.product.stock?.quantity || 0) > 0
                                                         ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
                                                         : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
-                                                        Estoque: {(item.product as any).stock?.[0]?.quantity ?? 0} {(item.product as any).stock?.[0]?.unit || ''}
+                                                        Estoque: {item.product.stock?.quantity ?? 0} {item.product.stock?.unit || ''}
                                                     </span>
                                                 )}
                                             </div>

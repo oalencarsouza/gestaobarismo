@@ -5,51 +5,79 @@ dotenv.config();
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL!;
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY!;
+
+if (!supabaseUrl || !supabaseKey) {
+    console.error('Erro: VITE_SUPABASE_URL ou VITE_SUPABASE_ANON_KEY não encontradas no arquivo .env');
+    process.exit(1);
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function run() {
-    console.log('Cleaning up orders...');
+    console.log('--- Iniciando Limpeza de Pedidos ---');
 
-    // 1. Delete all order items
-    const { error: err1 } = await supabase.from('order_items').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    if (err1) throw err1;
+    // 1. Deletar todos os pedidos (isso já limpa os itens via ON DELETE CASCADE no banco)
+    console.log('Limpando tabelas orders e order_items...');
+    const { error: err1 } = await supabase.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    if (err1) {
+        console.error('Erro ao limpar pedidos:', err1.message);
+        throw err1;
+    }
 
-    // 2. Delete all orders
-    const { error: err2 } = await supabase.from('orders').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    if (err2) throw err2;
+    console.log('Pedidos limpos com sucesso.');
 
-    console.log('Orders cleaned. Finding "Xeque Mate"...');
+    // 2. Buscar "Xeque Mate"
+    console.log('Buscando "Xeque Mate" no cardápio...');
 
-    // 3. Find Xeque Mate in menu_items
+    // Tenta buscar primeiro em menu_items
     const { data: menuItems, error: err3 } = await supabase
         .from('menu_items')
         .select('*, menus!inner(name, type)')
-        .ilike('custom_name', '%xeque%');
+        .ilike('custom_name', '%xeque%')
+        .limit(1);
 
-    if (err3) throw err3;
-    if (!menuItems || menuItems.length === 0) {
-        console.log('Xeque Mate not found in menu_items. Checking products...');
+    let targetItem = menuItems && menuItems.length > 0 ? menuItems[0] : null;
+
+    if (err3) console.warn('Aviso: Erro ao buscar em menu_items:', err3.message);
+
+    if (!targetItem) {
+        console.log('Xeque Mate não encontrado em menu_items. Buscando em produtos...');
         const { data: products, error: err4 } = await supabase
             .from('products')
             .select('*')
             .ilike('name', '%xeque%')
-            .single();
+            .limit(1);
+
         if (err4) throw err4;
 
-        // Find a menu to add it to
-        const { data: menu, error: err5 } = await supabase.from('menus').select('*').limit(1).single();
+        if (!products || products.length === 0) {
+            console.error('Erro: "Xeque Mate" não encontrado em lugar nenhum.');
+            return;
+        }
+
+        const product = products[0];
+        console.log(`Encontrado produto: ${product.name}. Buscando se ele está em algum cardápio...`);
+
+        // Busca se esse produto está em algum menu_item
+        const { data: itemsFromProduct, error: err5 } = await supabase
+            .from('menu_items')
+            .select('*, menus!inner(name, type)')
+            .eq('product_id', product.id)
+            .limit(1);
+
         if (err5) throw err5;
 
-        // Add to menu_items first if not there? 
-        // User said "do cardápio tradicional", so it should exist.
-        // Let's assume it exists or we use the product info.
-        throw new Error('Xeque Mate not found in any menu.');
+        if (!itemsFromProduct || itemsFromProduct.length === 0) {
+            console.error(`Erro: O produto "${product.name}" existe, mas não está em nenhum cardápio ativo.`);
+            return;
+        }
+        targetItem = itemsFromProduct[0];
     }
 
-    const targetItem = menuItems[0];
-    console.log(`Found item: ${targetItem.custom_name} - Price: ${targetItem.price}`);
+    console.log(`Item alvo encontrado: ${targetItem.custom_name || 'Produto'} - Preço: R$ ${targetItem.price}`);
 
-    // 4. Create new order
+    // 3. Criar pedido de teste
+    console.log('Criando novo pedido para "Marcos Silva"...');
     const { data: newOrder, error: err6 } = await supabase
         .from('orders')
         .insert({
@@ -61,25 +89,53 @@ async function run() {
         .select()
         .single();
 
-    if (err6) throw err6;
-    console.log(`Order created: ${newOrder.id}`);
+    if (err6) {
+        console.error('Erro ao criar pedido:', err6.message);
+        if (err6.message.includes('column "client_phone" does not exist')) {
+            console.log('Tentando criar pedido sem o campo client_phone (coluna ausente no DB)...');
+            const { data: fallbackOrder, error: errFallback } = await supabase
+                .from('orders')
+                .insert({
+                    client_name: 'Marcos Silva',
+                    status: 'Aberto',
+                    total: targetItem.price
+                })
+                .select()
+                .single();
 
-    // 5. Create order item
+            if (errFallback) throw errFallback;
+            return await addOrderItem(fallbackOrder, targetItem);
+        }
+        throw err6;
+    }
+
+    await addOrderItem(newOrder, targetItem);
+}
+
+async function addOrderItem(order: any, item: any) {
+    console.log(`Pedido criado: ${order.id}. Adicionando item...`);
+
     const { error: err7 } = await supabase
         .from('order_items')
         .insert({
-            order_id: newOrder.id,
-            menu_id: targetItem.menu_id,
-            menu_item_id: targetItem.id,
-            product_name: targetItem.custom_name,
-            price: targetItem.price,
+            order_id: order.id,
+            menu_id: item.menu_id,
+            menu_item_id: item.id,
+            product_name: item.custom_name || item.products?.name || 'Item do Cardápio',
+            price: item.price,
             quantity: 1,
-            menu_type: targetItem.menus.type,
-            menu_name: targetItem.menus.name
+            menu_type: item.menus?.type || 'tradicional',
+            menu_name: item.menus?.name || 'Cardápio'
         });
 
-    if (err7) throw err7;
-    console.log('Order item added successfully.');
+    if (err7) {
+        console.error('Erro ao adicionar item ao pedido:', err7.message);
+        throw err7;
+    }
+
+    console.log('--- Processo concluído com sucesso! ---');
 }
 
-run().catch(console.error);
+run().catch(err => {
+    console.error('FALHA NO SCRIPT:', err);
+});

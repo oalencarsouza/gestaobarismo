@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   client_name VARCHAR(200) NOT NULL,
+  client_phone VARCHAR(20),
   status VARCHAR(20) NOT NULL DEFAULT 'Aberto'
     CHECK (status IN ('Aberto', 'Pago', 'Cancelado')),
   total DECIMAL(10,2) NOT NULL DEFAULT 0,

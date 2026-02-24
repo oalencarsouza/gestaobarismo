@@ -115,7 +115,7 @@ const App: React.FC = () => {
                 <Header onLogout={handleLogout} />
                 <div className="flex flex-1 overflow-hidden">
                     <Sidebar currentView={view} setView={setView} />
-                    <div className="flex-1 overflow-y-auto">
+                    <div className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
                         {renderView()}
                     </div>
                 </div>

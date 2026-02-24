@@ -47,7 +47,7 @@ export const Reports: React.FC = () => {
     const avgTicket = totalRevenue / totalOrders;
 
     return (
-        <main className="flex-1 flex flex-col p-4 md:p-8 gap-6 overflow-y-auto">
+        <main className="flex-1 flex flex-col p-4 md:p-8 gap-6 overflow-y-auto overflow-x-hidden min-w-0 bg-background-dark">
             {/* Header Section */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
@@ -154,8 +154,8 @@ export const Reports: React.FC = () => {
                                             <button
                                                 key={i}
                                                 className={`py-2 rounded-lg text-sm transition-all ${d === 7 ? 'bg-primary text-white' :
-                                                        (d !== null && d >= 1 && d <= 7 && d !== 7) ? 'bg-primary/20 text-primary' :
-                                                            d !== null ? 'text-gray-400 hover:bg-white/10' : ''
+                                                    (d !== null && d >= 1 && d <= 7 && d !== 7) ? 'bg-primary/20 text-primary' :
+                                                        d !== null ? 'text-gray-400 hover:bg-white/10' : ''
                                                     }`}
                                             >
                                                 {d}

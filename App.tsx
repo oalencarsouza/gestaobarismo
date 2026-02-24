@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { OrderHistory } from './components/views/OrderHistory';
 import { Profile } from './components/views/Profile';
-import { Events } from './components/views/Events';
+// import { Events } from './components/views/Events';
 import { Dashboard } from './components/views/Dashboard';
 import { Stock } from './components/views/Stock';
 import { MenuView } from './components/views/Menu';
@@ -15,7 +15,7 @@ import { WelcomeModal } from './components/WelcomeModal';
 
 import { NotificationProvider } from './contexts/NotificationContext';
 
-export type View = 'history' | 'profile' | 'events' | 'dashboard' | 'stock' | 'reports' | 'menu' | 'orders';
+export type View = 'history' | 'profile' | 'dashboard' | 'stock' | 'reports' | 'menu' | 'orders';
 
 const App: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
@@ -82,8 +82,8 @@ const App: React.FC = () => {
                 return <Reports />;
             case 'profile':
                 return <Profile />;
-            case 'events':
-                return <Events />;
+            /* case 'events':
+                return <Events />; */
             case 'orders':
                 return (
                     <OrderView

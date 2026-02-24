@@ -47,7 +47,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { icon: 'restaurant_menu', label: 'Cardápio', viewName: 'menu' },
         { icon: 'inventory_2', label: 'Estoque', viewName: 'stock' },
         { icon: 'analytics', label: 'Relatórios', viewName: 'reports' },
-        { icon: 'event', label: 'Eventos', viewName: 'events' },
         { icon: 'person', label: 'Perfil', viewName: 'profile' },
     ];
 

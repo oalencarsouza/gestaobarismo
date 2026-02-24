@@ -13,43 +13,56 @@ const DayRow: React.FC<{
     config: DayConfig;
     onChange: (updated: DayConfig) => void
 }> = ({ config, onChange }) => (
-    <div className={`group flex items-center justify-between gap-4 p-3 rounded-xl transition-all border ${config.enabled
-        ? 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-primary/30'
-        : 'opacity-50 border-transparent bg-transparent'
+    <div className={`group flex items-center justify-between gap-4 p-4 rounded-2xl transition-all border ${config.enabled
+        ? 'bg-white/[0.03] border-white/5 hover:bg-white/[0.06] hover:border-primary/30 shadow-sm'
+        : 'opacity-40 border-transparent bg-transparent'
         }`}>
-        <span className={`text-sm font-bold w-24 transition-colors ${config.enabled ? 'text-white' : 'text-slate-500'}`}>
-            {config.day}
-        </span>
+        <div className="flex items-center gap-3">
+            <div className={`size-2 rounded-full ${config.enabled ? 'bg-primary' : 'bg-slate-700'}`}></div>
+            <span className={`text-sm font-black transition-colors min-w-[100px] ${config.enabled ? 'text-white' : 'text-slate-500'}`}>
+                {config.day}
+            </span>
+        </div>
 
-        <div className="flex items-center gap-3 flex-1 justify-end">
+        <div className="flex items-center gap-6">
             {config.enabled ? (
-                <div className="flex items-center gap-2 bg-black/20 p-1 rounded-lg border border-white/5 group-hover:border-primary/20 transition-all">
-                    <input
-                        className="bg-transparent border-none focus:ring-0 text-xs text-white px-2 py-1 w-20 cursor-pointer hover:text-primary transition-colors"
-                        type="time"
-                        value={config.open}
-                        onChange={(e) => onChange({ ...config, open: e.target.value })}
-                    />
-                    <span className="text-slate-600 text-[10px] font-bold">ATÉ</span>
-                    <input
-                        className="bg-transparent border-none focus:ring-0 text-xs text-white px-2 py-1 w-20 cursor-pointer hover:text-primary transition-colors"
-                        type="time"
-                        value={config.close}
-                        onChange={(e) => onChange({ ...config, close: e.target.value })}
-                    />
+                <div className="flex items-center gap-4 bg-black/40 px-4 py-2 rounded-xl border border-white/5 group-hover:border-primary/20 transition-all">
+                    <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Abertura</span>
+                        <input
+                            className="bg-transparent border-none focus:ring-0 text-sm font-bold text-white p-0 w-16 cursor-pointer hover:text-primary transition-colors h-5"
+                            type="time"
+                            value={config.open}
+                            onChange={(e) => onChange({ ...config, open: e.target.value })}
+                        />
+                    </div>
+
+                    <div className="h-4 w-px bg-white/10 mx-1"></div>
+
+                    <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-tighter">Fechamento</span>
+                        <input
+                            className="bg-transparent border-none focus:ring-0 text-sm font-bold text-white p-0 w-16 cursor-pointer hover:text-primary transition-colors h-5"
+                            type="time"
+                            value={config.close}
+                            onChange={(e) => onChange({ ...config, close: e.target.value })}
+                        />
+                    </div>
                 </div>
             ) : (
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Fechado</span>
+                <div className="flex-1 text-right">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">Fechado</span>
+                </div>
             )}
 
-            <label className="relative inline-flex items-center cursor-pointer ml-2">
+            <label className="relative inline-flex items-center cursor-pointer">
                 <input
                     type="checkbox"
                     checked={config.enabled}
                     onChange={(e) => onChange({ ...config, enabled: e.target.checked })}
                     className="sr-only peer"
                 />
-                <div className="w-10 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary shadow-inner"></div>
+                <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary shadow-xl"></div>
             </label>
         </div>
     </div>

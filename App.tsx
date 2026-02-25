@@ -71,7 +71,7 @@ const App: React.FC = () => {
     const renderView = () => {
         switch (view) {
             case 'dashboard':
-                return <Dashboard setView={setView} />;
+                return <Dashboard />;
             case 'history':
                 return <OrderHistory />;
             case 'stock':
@@ -92,7 +92,7 @@ const App: React.FC = () => {
                     />
                 );
             default:
-                return <Dashboard setView={setView} />;
+                return <Dashboard />;
         }
     };
 

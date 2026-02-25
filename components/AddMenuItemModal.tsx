@@ -381,7 +381,7 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
                                                 Aplicar Desconto Rápido
                                             </label>
                                             <div className="flex gap-2">
-                                                {['10', '20', '50'].map(pct => (
+                                                {['7', '10', '17'].map(pct => (
                                                     <button
                                                         key={pct}
                                                         type="button"

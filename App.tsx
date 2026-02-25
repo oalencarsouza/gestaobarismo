@@ -1,19 +1,18 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Header } from './components/Header';
-import { OrderHistory } from './components/views/OrderHistory';
-import { Profile } from './components/views/Profile';
-// import { Events } from './components/views/Events';
-import { Dashboard } from './components/views/Dashboard';
-import { Stock } from './components/views/Stock';
-import { MenuView } from './components/views/Menu';
-import { Reports } from './components/views/Reports';
-import { OrderView } from './components/views/OrderView';
-import { Login } from './components/views/Login';
 import { Sidebar } from './components/Sidebar';
 import { WelcomeModal } from './components/WelcomeModal';
-
 import { NotificationProvider } from './contexts/NotificationContext';
+import { Login } from './components/views/Login';
+
+// Importação Preguiçosa (Lazy Loading) para otimização de bundle
+const OrderHistory = lazy(() => import('./components/views/OrderHistory').then(m => ({ default: m.OrderHistory })));
+const Profile = lazy(() => import('./components/views/Profile').then(m => ({ default: m.Profile })));
+const Dashboard = lazy(() => import('./components/views/Dashboard').then(m => ({ default: m.Dashboard })));
+const Stock = lazy(() => import('./components/views/Stock').then(m => ({ default: m.Stock })));
+const MenuView = lazy(() => import('./components/views/Menu').then(m => ({ default: m.MenuView })));
+const Reports = lazy(() => import('./components/views/Reports').then(m => ({ default: m.Reports })));
+const OrderView = lazy(() => import('./components/views/OrderView').then(m => ({ default: m.OrderView })));
 
 export type View = 'history' | 'profile' | 'dashboard' | 'stock' | 'reports' | 'menu' | 'orders';
 
@@ -116,7 +115,16 @@ const App: React.FC = () => {
                 <div className="flex flex-1 overflow-hidden">
                     <Sidebar currentView={view} setView={setView} />
                     <div className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
-                        {renderView()}
+                        <Suspense fallback={
+                            <div className="flex-1 flex items-center justify-center h-full bg-background-dark/50 backdrop-blur-sm">
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="size-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+                                    <p className="text-gray-500 font-black uppercase tracking-[0.3em] text-[10px] animate-pulse">Carregando Módulo...</p>
+                                </div>
+                            </div>
+                        }>
+                            {renderView()}
+                        </Suspense>
                     </div>
                 </div>
             </div>

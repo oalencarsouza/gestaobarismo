@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { StatCard } from '../StatCard';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { useNotification } from '../../contexts/NotificationContext';
 
 interface OrderItemData {
     product_name: string;
@@ -42,6 +43,7 @@ export const Reports: React.FC = () => {
     const [customRange, setCustomRange] = useState({ start: '', end: '' });
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const { showSuccess, showError } = useNotification();
 
     const [orders, setOrders] = useState<OrderData[]>([]);
     const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
@@ -217,9 +219,9 @@ export const Reports: React.FC = () => {
         doc.setFontSize(14);
         doc.setTextColor(0);
         doc.setFont('helvetica', 'bold');
-        doc.text(`R$ ${stats.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 20, 58);
+        doc.text(`R$ ${stats.totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 20, 58);
         doc.text(`${stats.totalOrders}`, 83, 58);
-        doc.text(`R$ ${stats.avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 147, 58);
+        doc.text(`R$ ${stats.avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 147, 58);
 
         // Daily Table
         doc.setFontSize(12);
@@ -344,7 +346,7 @@ export const Reports: React.FC = () => {
                 <StatCard
                     icon="confirmation_number"
                     label="Ticket Médio"
-                    value={`R$ ${stats.avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                    value={`R$ ${stats.avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     iconColor="text-blue-500"
                     iconBgColor="bg-blue-500/10"
                 />
@@ -448,9 +450,46 @@ export const Reports: React.FC = () => {
                             <button onClick={() => setIsCalendarOpen(false)} className="text-gray-500 hover:text-white"><span className="material-symbols-outlined">close</span></button>
                         </div>
                         <div className="space-y-4">
-                            <input type="date" value={customRange.start} onChange={e => setCustomRange(p => ({ ...p, start: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white" />
-                            <input type="date" value={customRange.end} onChange={e => setCustomRange(p => ({ ...p, end: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white" />
-                            <button onClick={() => { setActivePeriod('personalizado'); setIsCalendarOpen(false); }} className="w-full bg-primary text-white font-black p-4 rounded-xl">Buscar</button>
+                            <div className="space-y-1">
+                                <label className="text-[8px] font-black uppercase text-gray-500 ml-2">Data Inicial</label>
+                                <input type="date" value={customRange.start} onChange={e => setCustomRange(p => ({ ...p, start: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-primary/50 outline-none transition-all" />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-[8px] font-black uppercase text-gray-500 ml-2">Data Final</label>
+                                <input type="date" value={customRange.end} onChange={e => setCustomRange(p => ({ ...p, end: e.target.value }))} className="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white focus:border-primary/50 outline-none transition-all" />
+                            </div>
+
+                            <div className="bg-primary/10 border border-primary/20 rounded-xl p-3 mb-2">
+                                <p className="text-[10px] text-primary font-bold text-center italic">
+                                    Limite máximo: 3 meses (90 dias)
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    if (!customRange.start || !customRange.end) {
+                                        showError('Por favor, selecione as duas datas.');
+                                        return;
+                                    }
+
+                                    const d1 = new Date(customRange.start);
+                                    const d2 = new Date(customRange.end);
+                                    const diffTime = Math.abs(d2.getTime() - d1.getTime());
+                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                                    if (diffDays > 90) {
+                                        showError('O período selecionado não pode ser maior que 3 meses (90 dias).');
+                                        return;
+                                    }
+
+                                    setActivePeriod('personalizado');
+                                    setIsCalendarOpen(false);
+                                    showSuccess('Filtro de período aplicado!');
+                                }}
+                                className="w-full bg-primary text-white font-black p-4 rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                            >
+                                Buscar
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -493,7 +532,7 @@ export const Reports: React.FC = () => {
                                 </div>
                                 <div className="bg-zinc-50 p-6 rounded border border-zinc-100">
                                     <p className="text-[8px] font-black uppercase text-zinc-400">Ticket Médio</p>
-                                    <p className="text-xl font-black">R$ {stats.avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                                    <p className="text-xl font-black">R$ {stats.avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                                 </div>
                             </div>
 

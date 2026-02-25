@@ -20,6 +20,8 @@ export const OrderHistory: React.FC = () => {
     const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
     const [itemsLoading, setItemsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 5;
 
     // Estados de Navegação e Filtro
     const [baseDate, setBaseDate] = useState<Date>(new Date());
@@ -175,7 +177,12 @@ export const OrderHistory: React.FC = () => {
 
     useEffect(() => {
         fetchOrders(selectedDate);
+        setCurrentPage(1);
     }, [selectedDate]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
 
     useEffect(() => {
         if (selectedOrder) {
@@ -186,11 +193,19 @@ export const OrderHistory: React.FC = () => {
     }, [selectedOrder?.id]);
 
     const filteredOrders = useMemo(() => {
-        return orders.filter(o =>
+        const filtered = orders.filter(o =>
             o.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             o.id.toLowerCase().includes(searchTerm.toLowerCase())
         );
+        return filtered;
     }, [orders, searchTerm]);
+
+    const paginatedOrders = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredOrders.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredOrders, currentPage]);
+
+    const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
 
     const dailyRevenue = useMemo(() => {
         return orders
@@ -212,7 +227,7 @@ export const OrderHistory: React.FC = () => {
     }
 
     return (
-        <main className="flex-1 flex flex-col p-4 md:p-8 gap-8 overflow-y-auto overflow-x-hidden min-w-0 bg-background-dark relative">
+        <main className="flex-1 flex flex-col p-4 md:p-6 gap-6 overflow-y-auto overflow-x-hidden min-w-0 bg-background-dark relative">
             {/* Header */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
                 <div>
@@ -316,28 +331,31 @@ export const OrderHistory: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex flex-col xl:flex-row gap-8 items-start relative">
+            <div className="flex flex-col xl:flex-row gap-4 items-start relative">
                 {/* Orders Table */}
-                <div className="flex-1 w-full overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-2xl">
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
+                <div className="flex-1 min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-2xl">
+                    <div className="overflow-x-auto scrollbar-hide">
+                        <style>{`
+                            .scrollbar-hide::-webkit-scrollbar { display: none; }
+                            .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+                        `}</style>
+                        <table className="w-full text-left border-collapse table-auto">
                             <thead>
                                 <tr className="bg-white/5 text-gray-400 text-[10px] font-black border-b border-white/10 uppercase tracking-[0.2em]">
-                                    <th className="px-6 py-5">Horário</th>
-                                    <th className="px-6 py-4">Cliente</th>
-                                    <th className="px-6 py-4">Valor Total</th>
-                                    <th className="px-6 py-4">Status</th>
-                                    <th className="px-6 py-4 text-right">Ações</th>
+                                    <th className="px-2 py-5">Horário</th>
+                                    <th className="px-2 py-4">Cliente</th>
+                                    <th className="px-2 py-4">Valor Total</th>
+                                    <th className="px-2 py-4">Status</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/10">
-                                {filteredOrders.map(order => (
+                                {paginatedOrders.map(order => (
                                     <tr
                                         key={order.id}
                                         onClick={() => setSelectedOrder(order)}
                                         className={`cursor-pointer transition-all group ${selectedOrder?.id === order.id ? 'bg-primary/10 border-l-4 border-primary' : 'hover:bg-white/[0.03]'}`}
                                     >
-                                        <td className="px-6 py-5">
+                                        <td className="px-2 py-5">
                                             <div className="flex items-center gap-2 text-gray-400">
                                                 <span className="material-symbols-outlined text-sm opacity-50">schedule</span>
                                                 <span className="text-xs font-medium">
@@ -345,26 +363,21 @@ export const OrderHistory: React.FC = () => {
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-2 py-4">
                                             <div className="flex flex-col">
-                                                <span className="text-white font-bold">{order.client_name}</span>
+                                                <span className="text-white font-bold whitespace-nowrap">{order.client_name}</span>
                                                 <span className="text-gray-500 text-[10px] font-medium tracking-wider">{order.id.slice(0, 8).toUpperCase()}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <span className="text-white font-black font-numbers text-lg">
+                                        <td className="px-2 py-4">
+                                            <span className="text-white font-black font-numbers text-lg whitespace-nowrap">
                                                 R$ {Number(order.total).toFixed(2)}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${STATUS_COLORS[order.status]}`}>
+                                        <td className="px-2 py-4">
+                                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${STATUS_COLORS[order.status]}`}>
                                                 {order.status}
                                             </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className={`p-2 rounded-lg inline-flex transition-colors ${selectedOrder?.id === order.id ? 'bg-primary text-white' : 'bg-white/5 text-gray-500 group-hover:text-primary group-hover:bg-primary/10'}`}>
-                                                <span className="material-symbols-outlined text-base">visibility</span>
-                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -385,7 +398,7 @@ export const OrderHistory: React.FC = () => {
 
                 {/* Sidebar Details */}
                 {selectedOrder && (
-                    <aside className="w-full xl:w-[450px] bg-white/5 border border-white/10 rounded-2xl p-8 flex flex-col gap-6 sticky top-8 transition-all h-fit animate-in fade-in slide-in-from-right-4 duration-300">
+                    <aside className="w-full xl:w-[350px] bg-white/5 border border-white/10 rounded-2xl p-6 flex flex-col gap-6 sticky top-8 transition-all h-fit animate-in fade-in slide-in-from-right-4 duration-300">
                         <div className="flex justify-between items-start">
                             <div>
                                 <h3 className="text-2xl font-black text-white tracking-tight">
@@ -474,11 +487,43 @@ export const OrderHistory: React.FC = () => {
                 )}
             </div>
 
-            {/* Footer */}
-            <div className="flex justify-between items-center mt-auto py-6 border-t border-white/10">
-                <p className="text-gray-600 text-xs font-bold uppercase tracking-[0.2em]">
-                    Mostrando {filteredOrders.length} de {orders.length} pedidos em {selectedDate.toLocaleDateString('pt-BR')}
+            {/* Footer with Pagination */}
+            <div className="flex flex-col md:flex-row justify-between items-center mt-auto py-6 border-t border-white/10 gap-4">
+                <p className="text-gray-600 text-[10px] font-black uppercase tracking-[0.2em]">
+                    Mostrando {paginatedOrders.length} de {filteredOrders.length} pedidos • Página {currentPage} de {totalPages || 1}
                 </p>
+
+                {totalPages > 1 && (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                            disabled={currentPage === 1}
+                            className={`size-10 rounded-xl border border-white/10 flex items-center justify-center transition-all ${currentPage === 1 ? 'opacity-20 cursor-not-allowed' : 'bg-white/5 text-white hover:bg-white/10 hover:border-primary/50'}`}
+                        >
+                            <span className="material-symbols-outlined text-sm">chevron_left</span>
+                        </button>
+
+                        <div className="flex items-center gap-1">
+                            {Array.from({ length: totalPages }).map((_, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => setCurrentPage(i + 1)}
+                                    className={`size-8 rounded-lg flex items-center justify-center text-[10px] font-black transition-all ${currentPage === i + 1 ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'bg-white/5 text-gray-500 hover:text-white'}`}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
+                        </div>
+
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                            disabled={currentPage === totalPages}
+                            className={`size-10 rounded-xl border border-white/10 flex items-center justify-center transition-all ${currentPage === totalPages ? 'opacity-20 cursor-not-allowed' : 'bg-white/5 text-white hover:bg-white/10 hover:border-primary/50'}`}
+                        >
+                            <span className="material-symbols-outlined text-sm">chevron_right</span>
+                        </button>
+                    </div>
+                )}
             </div>
 
             <ConfirmModal

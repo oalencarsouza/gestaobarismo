@@ -208,7 +208,7 @@ export const Dashboard: React.FC = () => {
                 <StatCard
                     icon="local_bar"
                     label="TICKET MÉDIO"
-                    value={`R$ ${stats.avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+                    value={`R$ ${stats.avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     iconBgColor="bg-green-500/20"
                     iconColor="text-green-500"
                 />
@@ -306,7 +306,7 @@ export const Dashboard: React.FC = () => {
                                         <p className="text-white text-3xl font-black uppercase italic tracking-tight leading-tight">{highlights.topClient.name}</p>
                                         <div className="flex items-center gap-6 mt-3">
                                             <div className="flex items-baseline gap-2">
-                                                <span className="text-blue-500 text-4xl font-black font-numbers">R$ {highlights.topClient.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                                                <span className="text-blue-500 text-4xl font-black font-numbers">R$ {highlights.topClient.total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                                             </div>
                                             <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
                                                 <span className="material-symbols-outlined text-sm text-gray-400">receipt_long</span>

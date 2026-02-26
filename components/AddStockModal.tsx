@@ -19,7 +19,7 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
 }) => {
     const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
     const [selectedProductId, setSelectedProductId] = useState<string>('');
-    const [quantityToAdd, setQuantityToAdd] = useState<number>(1);
+    const [quantityToAdd, setQuantityToAdd] = useState<string>('1');
     const [currentStock, setCurrentStock] = useState<number>(0);
 
     // Reset state when modal opens
@@ -27,7 +27,7 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
         if (isOpen) {
             setSelectedCategoryId('');
             setSelectedProductId('');
-            setQuantityToAdd(1);
+            setQuantityToAdd('1');
             setCurrentStock(0);
         }
     }, [isOpen]);
@@ -48,8 +48,9 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (selectedProductId && quantityToAdd > 0) {
-            onSave(selectedProductId, quantityToAdd);
+        const qty = parseInt(quantityToAdd);
+        if (selectedProductId && qty > 0) {
+            onSave(selectedProductId, qty);
         }
     };
 
@@ -120,18 +121,25 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
                             <div className="flex flex-col gap-1 w-32">
                                 <label className="text-xs font-bold text-primary uppercase">Adicionar</label>
                                 <input
-                                    type="number"
-                                    min="1"
+                                    type="text"
                                     required
                                     value={quantityToAdd}
-                                    onChange={e => setQuantityToAdd(parseInt(e.target.value) || 0)}
-                                    className="bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-right font-bold focus:ring-1 focus:ring-primary outline-none"
+                                    onChange={e => {
+                                        const val = e.target.value.replace(/[^\d]/g, '');
+                                        if (val && parseInt(val) > 999) {
+                                            setQuantityToAdd('');
+                                            return;
+                                        }
+                                        setQuantityToAdd(val);
+                                    }}
+                                    className="bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white text-right font-bold focus:ring-1 focus:ring-primary outline-none font-numbers"
+                                    placeholder="0"
                                 />
                             </div>
                             <div className="w-px h-10 bg-white/10 mx-4"></div>
                             <div>
                                 <span className="text-sm text-gray-400 block mb-1">Novo Total</span>
-                                <span className="text-2xl font-bold text-green-500">{currentStock + quantityToAdd}</span>
+                                <span className="text-2xl font-bold text-green-500">{currentStock + (parseInt(quantityToAdd) || 0)}</span>
                             </div>
                         </div>
                     )}
@@ -146,7 +154,7 @@ export const AddStockModal: React.FC<AddStockModalProps> = ({
                         </button>
                         <button
                             type="submit"
-                            disabled={!selectedProductId || quantityToAdd <= 0}
+                            disabled={!selectedProductId || !quantityToAdd || parseInt(quantityToAdd) <= 0}
                             className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Save size={20} />

@@ -86,13 +86,32 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
     const addToCart = (item: MenuItem) => {
         if (!selectedMenu) return;
         const name = getItemName(item);
+        const currentQty = getCartQty(item.id);
+        const increment = selectedMenu.type === 'quantidade' ? 2 : 1;
+
+        // Validation: Stock availability
+        if (item.product_id && item.product) {
+            const stockQty = item.product.stock?.quantity || 0;
+            if (currentQty + increment > stockQty) {
+                showError(`Estoque insuficiente de "${name}". Disponível: ${stockQty}`);
+                return;
+            }
+        }
+
+        // Validation: Custom item limit
+        if (!item.product_id) {
+            if (currentQty + increment > 99) {
+                showError('Limite de 99 unidades para itens personalizados atingido.');
+                return;
+            }
+        }
 
         setCart(prev => {
             const existing = prev.find(c => c.menuItemId === item.id);
             if (existing) {
                 return prev.map(c =>
                     c.menuItemId === item.id
-                        ? { ...c, quantity: c.quantity + 1 }
+                        ? { ...c, quantity: c.quantity + increment }
                         : c
                 );
             }
@@ -101,7 +120,7 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
                 menuId: selectedMenu.id,
                 productName: name,
                 price: item.price,
-                quantity: 1,
+                quantity: increment,
                 menuType: selectedMenu.type || 'tradicional',
                 menuName: selectedMenu.name,
             }];
@@ -109,12 +128,17 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
     };
 
     const removeFromCart = (menuItemId: string) => {
+        const itemInCart = cart.find(c => c.menuItemId === menuItemId);
+        if (!itemInCart) return;
+
+        const decrement = itemInCart.menuType === 'quantidade' ? 2 : 1;
+
         setCart(prev => {
             const existing = prev.find(c => c.menuItemId === menuItemId);
-            if (existing && existing.quantity > 1) {
+            if (existing && existing.quantity > decrement) {
                 return prev.map(c =>
                     c.menuItemId === menuItemId
-                        ? { ...c, quantity: c.quantity - 1 }
+                        ? { ...c, quantity: c.quantity - decrement }
                         : c
                 );
             }
@@ -126,7 +150,13 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
         return cart.find(c => c.menuItemId === menuItemId)?.quantity || 0;
     };
 
-    const cartTotal = cart.reduce((sum, c) => sum + c.price * c.quantity, 0);
+    const cartTotal = cart.reduce((sum, c) => {
+        if (c.menuType === 'quantidade') {
+            // "Pague 1 Leve 2" logic: charge half of the quantity
+            return sum + (c.price * (c.quantity / 2));
+        }
+        return sum + (c.price * c.quantity);
+    }, 0);
     const cartCount = cart.reduce((sum, c) => sum + c.quantity, 0);
 
     const handleConfirm = async () => {

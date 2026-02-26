@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { Toast, NotificationType } from '../components/Toast';
 
 interface NotificationContextData {
@@ -11,17 +11,17 @@ const NotificationContext = createContext<NotificationContextData>({} as Notific
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [notification, setNotification] = useState<{ message: string; type: NotificationType } | null>(null);
 
-    const showSuccess = (message: string) => {
+    const showSuccess = useCallback((message: string) => {
         setNotification({ message, type: 'success' });
-    };
+    }, []);
 
-    const showError = (message: string) => {
+    const showError = useCallback((message: string) => {
         setNotification({ message, type: 'error' });
-    };
+    }, []);
 
-    const closeNotification = () => {
+    const closeNotification = useCallback(() => {
         setNotification(null);
-    };
+    }, []);
 
     return (
         <NotificationContext.Provider value={{ showSuccess, showError }}>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { Product, Category } from '../types';
 import { getUniqueCategories } from '../lib/data-utils';
+import { useNotification } from '../contexts/NotificationContext';
 
 interface ProductModalProps {
     isOpen: boolean;
@@ -18,14 +19,15 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     categories,
     initialData
 }) => {
+    const { showError } = useNotification();
     const [formData, setFormData] = useState({
         name: '',
         category_id: '',
-        price: 0,
-        cost_price: 0,
+        price: '',
+        cost_price: '',
         description: '',
-        quantity: 0,
-        min_quantity: 5,
+        quantity: '',
+        min_quantity: '',
         unit: 'un'
     });
 
@@ -34,22 +36,22 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             setFormData({
                 name: initialData.name,
                 category_id: initialData.category_id || '',
-                price: initialData.price,
-                cost_price: initialData.cost_price || 0,
+                price: initialData.price.toString(),
+                cost_price: initialData.cost_price ? initialData.cost_price.toString() : '',
                 description: initialData.description || '',
-                quantity: initialData.stock?.quantity || 0,
-                min_quantity: initialData.stock?.min_quantity || 5,
+                quantity: initialData.stock?.quantity.toString() || '0',
+                min_quantity: initialData.stock?.min_quantity.toString() || '5',
                 unit: initialData.stock?.unit || 'un'
             });
         } else {
             setFormData({
                 name: '',
                 category_id: categories[0]?.id || '',
-                price: 0,
-                cost_price: 0,
+                price: '',
+                cost_price: '',
                 description: '',
-                quantity: 0,
-                min_quantity: 5,
+                quantity: '0',
+                min_quantity: '5',
                 unit: 'un'
             });
         }
@@ -59,11 +61,44 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
     if (!isOpen) return null;
 
+    const handlePriceChange = (val: string, field: 'price' | 'cost_price') => {
+        let cleaned = val.replace(',', '.').replace(/[^\d.]/g, '');
+        const dots = cleaned.split('.').length - 1;
+        if (dots > 1) return;
+
+        if (cleaned.includes('.')) {
+            const [int, dec] = cleaned.split('.');
+            cleaned = `${int}.${dec.slice(0, 2)}`;
+        }
+
+        if (parseFloat(cleaned) > 999.99) {
+            showError('Valores acima de R$ 999,99 não são válidos.');
+            setFormData(prev => ({ ...prev, [field]: '' }));
+            return;
+        }
+
+        setFormData(prev => ({ ...prev, [field]: cleaned }));
+    };
+
+    const handleQuantityChange = (val: string, field: 'quantity' | 'min_quantity') => {
+        let cleaned = val.replace(/[^\d]/g, '');
+        if (parseInt(cleaned) > 999) {
+            showError('Quantidades acima de 999 não são válidas.');
+            setFormData(prev => ({ ...prev, [field]: '' }));
+            return;
+        }
+        setFormData(prev => ({ ...prev, [field]: cleaned }));
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onSave({
             ...initialData,
             ...formData,
+            price: parseFloat(formData.price) || 0,
+            cost_price: parseFloat(formData.cost_price) || 0,
+            quantity: parseInt(formData.quantity) || 0,
+            min_quantity: parseInt(formData.min_quantity) || 0
         });
     };
 
@@ -81,10 +116,14 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
                 <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-5">
                     <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium text-gray-400">Nome do Produto</label>
+                        <div className="flex justify-between items-center">
+                            <label className="text-sm font-medium text-gray-400">Nome do Produto</label>
+                            <span className={`text-xs font-mono ${formData.name.length >= 45 ? 'text-red-400' : 'text-gray-600'}`}>{formData.name.length}/45</span>
+                        </div>
                         <input
                             required
                             type="text"
+                            maxLength={45}
                             value={formData.name}
                             onChange={e => setFormData({ ...formData, name: e.target.value })}
                             className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-600"
@@ -93,9 +132,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                     </div>
 
                     <div className="flex flex-col gap-2">
-                        <label className="text-sm font-medium text-gray-400">Descrição (Opcional)</label>
+                        <div className="flex justify-between items-center">
+                            <label className="text-sm font-medium text-gray-400">Descrição (Opcional)</label>
+                            <span className={`text-xs font-mono ${formData.description.length >= 135 ? 'text-red-400' : 'text-gray-600'}`}>{formData.description.length}/135</span>
+                        </div>
                         <input
                             type="text"
+                            maxLength={135}
                             value={formData.description}
                             onChange={e => setFormData({ ...formData, description: e.target.value })}
                             className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-gray-600"
@@ -122,21 +165,20 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                             <label className="text-sm font-medium text-gray-400">Preço de Venda (R$)</label>
                             <input
                                 required
-                                type="number"
-                                step="0.50"
+                                type="text"
                                 value={formData.price}
-                                onChange={e => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary outline-none"
+                                onChange={e => handlePriceChange(e.target.value, 'price')}
+                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary outline-none font-numbers"
+                                placeholder="0.00"
                             />
                         </div>
                         <div className="flex flex-col gap-2">
                             <label className="text-sm font-medium text-gray-400">Preço Custo (R$) (Opcional)</label>
                             <input
-                                type="number"
-                                step="0.01"
-                                value={formData.cost_price === 0 ? '' : formData.cost_price}
-                                onChange={e => setFormData({ ...formData, cost_price: parseFloat(e.target.value) || 0 })}
-                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary outline-none"
+                                type="text"
+                                value={formData.cost_price}
+                                onChange={e => handlePriceChange(e.target.value, 'cost_price')}
+                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary outline-none font-numbers"
                                 placeholder="0.00"
                             />
                         </div>
@@ -147,20 +189,20 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                             <label className="text-sm font-medium text-gray-400">Qtd. Atual</label>
                             <input
                                 required
-                                type="number"
+                                type="text"
                                 value={formData.quantity}
-                                onChange={e => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
-                                className="bg-primary/10 border border-primary/30 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary outline-none"
+                                onChange={e => handleQuantityChange(e.target.value, 'quantity')}
+                                className="bg-primary/10 border border-primary/30 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary outline-none font-numbers"
                             />
                         </div>
                         <div className="flex flex-col gap-2">
                             <label className="text-sm font-medium text-gray-400">Qtd. Mínima</label>
                             <input
                                 required
-                                type="number"
+                                type="text"
                                 value={formData.min_quantity}
-                                onChange={e => setFormData({ ...formData, min_quantity: parseInt(e.target.value) })}
-                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary outline-none"
+                                onChange={e => handleQuantityChange(e.target.value, 'min_quantity')}
+                                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary outline-none font-numbers"
                             />
                         </div>
                         <div className="flex flex-col gap-2">

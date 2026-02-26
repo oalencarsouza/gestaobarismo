@@ -404,12 +404,16 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
                         /* Custom Item Form */
                         <div className="space-y-4 animate-in slide-in-from-bottom-2 duration-200">
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-1">
-                                    Nome do Item <span className="text-red-500">*</span>
-                                </label>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-sm font-medium text-gray-400">
+                                        Nome do Item <span className="text-red-500">*</span>
+                                    </label>
+                                    <span className={`text-xs font-mono ${customName.length >= 45 ? 'text-red-400' : 'text-gray-600'}`}>{customName.length}/45</span>
+                                </div>
                                 <input
                                     type="text"
                                     required
+                                    maxLength={45}
                                     value={customName}
                                     onChange={(e) => setCustomName(e.target.value)}
                                     placeholder="Ex: Lanche Choripan, Drink Especial..."
@@ -418,11 +422,13 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-1">
-                                    Descrição (Opcional)
-                                </label>
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-sm font-medium text-gray-400">Descrição (Opcional)</label>
+                                    <span className={`text-xs font-mono ${customDescription.length >= 160 ? 'text-red-400' : 'text-gray-600'}`}>{customDescription.length}/160</span>
+                                </div>
                                 <input
                                     type="text"
+                                    maxLength={160}
                                     value={customDescription}
                                     onChange={(e) => setCustomDescription(e.target.value)}
                                     placeholder="Descrição breve do item..."
@@ -437,12 +443,24 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
                                 <div className="relative group">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-purple-400 font-bold text-xl select-none">R$</span>
                                     <input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
+                                        type="text"
                                         required
                                         value={customPrice}
-                                        onChange={(e) => setCustomPrice(e.target.value)}
+                                        onChange={(e) => {
+                                            let val = e.target.value.replace(',', '.').replace(/[^\d.]/g, '');
+                                            const dots = val.split('.').length - 1;
+                                            if (dots > 1) return;
+                                            if (val.includes('.')) {
+                                                const [int, dec] = val.split('.');
+                                                val = `${int}.${dec.slice(0, 2)}`;
+                                            }
+                                            if (parseFloat(val) > 999.99) {
+                                                showError('Valores acima de R$ 999,99 não são válidos.');
+                                                setCustomPrice('');
+                                                return;
+                                            }
+                                            setCustomPrice(val);
+                                        }}
                                         placeholder="0.00"
                                         className="w-full bg-black/20 border-2 border-purple-500/50 rounded-xl pl-12 pr-4 py-4 text-white text-2xl font-black font-numbers focus:ring-4 focus:ring-purple-500/20 outline-none transition-all shadow-inner"
                                     />

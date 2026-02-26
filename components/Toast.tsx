@@ -16,6 +16,7 @@ export const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration =
 
     useEffect(() => {
         setIsVisible(true);
+        setProgress(100);
 
         const startTime = Date.now();
         const progressInterval = setInterval(() => {
@@ -31,7 +32,7 @@ export const Toast: React.FC<ToastProps> = ({ message, type, onClose, duration =
         }, 10);
 
         return () => clearInterval(progressInterval);
-    }, [duration, onClose]);
+    }, [message, duration, onClose]);
 
     const handleClose = () => {
         setIsVisible(false);

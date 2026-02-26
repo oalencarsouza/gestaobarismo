@@ -17,15 +17,15 @@ O objetivo deste ciclo é realizar a integração com o banco de dados para torn
 | [ x] Criar tabelas de Estoque e Pedidos no Supabase | 📝 Done | 🔴 Alta | @user |
 | [ x] Implementar formulário "Adicionar Novo Item" | 📝 Done | 🔴 Alta | @user |
 | [x ] Alterar identificação de "Mesa" para "Cliente" | 📝 Done | 🟡 Média | @user |
-| [ ] Configurar o ambiente React Native para mobile | 📝 To Do | 🟡 Média | @user |
+| [x ] Configurar ambiente React Native para mobile | 📝 Done | 🟡 Média | @user |
 | [x ] Desenvolver função de "Finalizar Pedido" | 📝 Done | � Alta | @user |
-| [ ] Integrar Dashboard com dados reais do banco | 📝 To Do | � Baixa | @user |
+| [x] Integrar Dashboard com dados reais do banco | 📝 Done | � Baixa | @user |
 
 ## 📦 Entregáveis (Incrementos)
-- [ ] **Persistência de Dados:** Garantir que ao adicionar um produto ou realizar um pedido, os dados sejam salvos no Supabase.
-- [ ] **Sistema de Cadastro:** Tela funcional para inserir nome, categoria, preço e quantidade inicial de novos produtos.
-- [ ] **Refatoração de UX:** Interface de pedidos atualizada para usar nomes de clientes em vez de números de mesa, conforme planejado no vídeo.
-- [ ] **Protótipo Mobile:** Primeira versão da tela de cardápio acessível via celular.
+- [x] **Persistência de Dados:** Garantir que ao adicionar um produto ou realizar um pedido, os dados sejam salvos no Supabase.
+- [x] **Sistema de Cadastro:** Tela funcional para inserir nome, categoria, preço e quantidade inicial de novos produtos.
+- [x] **Refatoração de UX:** Interface de pedidos atualizada para usar nomes de clientes em vez de números de mesa, conforme planejado no vídeo.
+- [x] **Protótipo Mobile:** Primeira versão da tela de cardápio acessível via celular.
 
 ## 📓 Notas e Observações
 - **Integração Técnica:** O foco será substituir dados fictícios por chamadas de API reais no Supabase.

@@ -16,7 +16,9 @@ export const Dashboard: React.FC = () => {
         revenue: 0,
         orders: 0,
         customers: 0,
-        avgTicket: 0
+        avgTicket: 0,
+        avgTicketChange: '',
+        avgTicketPositive: true
     });
     const [highlights, setHighlights] = useState<HighlightData>({
         topProduct: null,
@@ -33,28 +35,36 @@ export const Dashboard: React.FC = () => {
         setLoading(true);
         try {
             let startDate = new Date();
+            let previousStartDate = new Date();
+
             if (filter === 'today') {
                 startDate.setHours(0, 0, 0, 0);
+                previousStartDate.setDate(previousStartDate.getDate() - 1);
+                previousStartDate.setHours(0, 0, 0, 0);
             } else if (filter === '7days') {
                 startDate.setDate(startDate.getDate() - 7);
+                previousStartDate.setDate(previousStartDate.getDate() - 14);
             } else if (filter === '30days') {
                 startDate.setDate(startDate.getDate() - 30);
+                previousStartDate.setDate(previousStartDate.getDate() - 60);
             } else if (filter === 'month') {
                 startDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+                previousStartDate = new Date(startDate.getFullYear(), startDate.getMonth() - 1, 1);
             }
 
             const isoStartDate = startDate.toISOString();
+            const isoPrevStartDate = previousStartDate.toISOString();
 
-            // 1. Fetch Orders
-            const { data: ordersData, error: ordersError } = await supabase
+            // 1. Fetch Orders (Current and Previous Period for comparison)
+            const { data: allOrders, error: ordersError } = await supabase
                 .from('orders')
                 .select('*')
-                .gte('created_at', isoStartDate)
+                .gte('created_at', isoPrevStartDate)
                 .order('created_at', { ascending: false });
 
             if (ordersError) throw ordersError;
 
-            // 2. Fetch Order Items (for product ranking)
+            // 2. Fetch Order Items (Current Period)
             const { data: itemsData, error: itemsError } = await supabase
                 .from('order_items')
                 .select('*')
@@ -62,7 +72,7 @@ export const Dashboard: React.FC = () => {
 
             if (itemsError) throw itemsError;
 
-            // 3. Fetch Stock for consumed items analysis
+            // 3. Fetch Stock
             const { data: stockData, error: stockError } = await supabase
                 .from('stock')
                 .select('*, products(name)')
@@ -70,18 +80,42 @@ export const Dashboard: React.FC = () => {
 
             if (stockError) throw stockError;
 
-            const orders = ordersData || [];
+            const orders = allOrders?.filter(o => new Date(o.created_at) >= startDate) || [];
+            const prevOrders = allOrders?.filter(o => new Date(o.created_at) < startDate) || [];
             const items = itemsData || [];
             const stock = stockData || [];
 
             // === PROCESS STATS ===
-            const paidOrders = orders.filter(o => o.status === 'Pago');
+            const paidOrders = orders.filter(o => o.status === 'Pago' && Number(o.total) > 0);
+            const prevPaidOrders = prevOrders.filter(o => o.status === 'Pago' && Number(o.total) > 0);
+
             const revenue = paidOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+            const prevRevenue = prevPaidOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+
             const totalOrders = orders.length;
             const uniqueClients = new Set(orders.map(o => o.client_name)).size;
-            const avgTicket = paidOrders.length > 0 ? revenue / paidOrders.length : 0;
 
-            setStats({ revenue, orders: totalOrders, customers: uniqueClients, avgTicket });
+            const avgTicket = paidOrders.length > 0 ? revenue / paidOrders.length : 0;
+            const prevAvgTicket = prevPaidOrders.length > 0 ? prevRevenue / prevPaidOrders.length : 0;
+
+            // Calculate Change
+            let avgTicketChange = '';
+            let avgTicketPositive = true;
+
+            if (prevAvgTicket > 0) {
+                const diff = ((avgTicket - prevAvgTicket) / prevAvgTicket) * 100;
+                avgTicketChange = `${Math.abs(diff).toFixed(1)}%`;
+                avgTicketPositive = diff >= 0;
+            }
+
+            setStats({
+                revenue,
+                orders: totalOrders,
+                customers: uniqueClients,
+                avgTicket,
+                avgTicketChange,
+                avgTicketPositive
+            });
 
             // === HIGHLIGHT: PRODUTO MAIS VENDIDO ===
             const productSales = new Map<string, number>();
@@ -209,6 +243,8 @@ export const Dashboard: React.FC = () => {
                     icon="local_bar"
                     label="TICKET MÉDIO"
                     value={`R$ ${stats.avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    change={stats.avgTicketChange}
+                    positive={stats.avgTicketPositive}
                     iconBgColor="bg-green-500/20"
                     iconColor="text-green-500"
                 />

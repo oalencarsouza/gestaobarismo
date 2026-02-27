@@ -463,16 +463,23 @@ export const OrderHistory: React.FC = () => {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <button
-                                    onClick={() => selectedOrder.status !== 'Pago' && handleFinalizeOrder(selectedOrder)}
+                                    onClick={() => selectedOrder.status === 'Aberto' && handleFinalizeOrder(selectedOrder)}
                                     className={`col-span-2 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 group ${selectedOrder.status === 'Pago'
                                         ? 'bg-green-500/10 text-green-500 border border-green-500/20 cursor-default'
-                                        : 'bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20'
+                                        : selectedOrder.status === 'Cancelado'
+                                            ? 'bg-red-500/10 text-red-500 border border-red-500/20 cursor-default'
+                                            : 'bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20'
                                         }`}
                                 >
                                     {selectedOrder.status === 'Pago' ? (
                                         <>
                                             <span className="material-symbols-outlined text-lg">check_circle</span>
                                             Finalizado
+                                        </>
+                                    ) : selectedOrder.status === 'Cancelado' ? (
+                                        <>
+                                            <span className="material-symbols-outlined text-lg">cancel</span>
+                                            Cancelado
                                         </>
                                     ) : (
                                         <>

@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNotification } from '../contexts/NotificationContext';
-import { X, ChevronLeft, Loader2, Plus, Minus, ShoppingCart, Coffee, Percent, Copy, Sparkles, ArrowRight } from 'lucide-react';
-import type { Menu, MenuItem, MenuType, CartItem } from '../types';
+import { X, ChevronLeft, Loader2, Plus, Minus, ShoppingCart, Coffee, Percent, Copy, Sparkles, ArrowRight, Search, Filter } from 'lucide-react';
+import type { Menu, MenuItem, MenuType, CartItem, Category } from '../types';
 
 const TYPE_CONFIG: Record<MenuType, { label: string; color: string; icon: React.ReactNode; badge?: string; badgeColor?: string }> = {
     tradicional: { label: 'Tradicional', color: 'text-orange-400 bg-orange-500/10 border-orange-500/30', icon: <Coffee size={14} /> },
@@ -30,15 +30,48 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
     const [selectedMenu, setSelectedMenu] = useState<Menu | null>(null);
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+    const [isGlobalSearch, setIsGlobalSearch] = useState(false);
+    const [globalResults, setGlobalResults] = useState<any[]>([]);
 
     useEffect(() => {
         if (isOpen) {
             fetchMenus();
+            fetchCategories();
             setSelectedMenu(null);
             setMenuItems([]);
             setCart([]);
+            setSearchTerm('');
+            setSelectedCategoryId(null);
+            setIsGlobalSearch(false);
         }
     }, [isOpen]);
+
+    const fetchCategories = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('categories')
+                .select('*')
+                .order('name');
+            if (error) throw error;
+
+            // Ensure unique categories by name to prevent duplicates in the UI
+            const uniqueCategories = (data || []).reduce((acc: Category[], current) => {
+                const x = acc.find(item => item.name === current.name);
+                if (!x) {
+                    return acc.concat([current]);
+                } else {
+                    return acc;
+                }
+            }, []);
+
+            setCategories(uniqueCategories);
+        } catch (error) {
+            console.error('Error fetching categories:', error);
+        }
+    };
 
     const fetchMenus = async () => {
         setLoading(true);
@@ -61,11 +94,14 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
 
     const handleSelectMenu = async (menu: Menu) => {
         setSelectedMenu(menu);
+        setSearchTerm('');
+        setSelectedCategoryId(null);
+        setIsGlobalSearch(false);
         setLoading(true);
         try {
             const { data, error } = await supabase
                 .from('menu_items')
-                .select('*, product:products(*, stock(*))')
+                .select('*, product:products(*, stock(*), category:categories(*))')
                 .eq('menu_id', menu.id);
 
             if (error) throw error;
@@ -78,16 +114,80 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
         }
     };
 
-    const getItemName = (item: MenuItem): string => {
+    const handleGlobalSearch = async (term: string) => {
+        if (term.length < 2) {
+            setIsGlobalSearch(false);
+            setGlobalResults([]);
+            return;
+        }
+
+        setIsGlobalSearch(true);
+        setLoading(true);
+        try {
+            // Search menu items across all active menus
+            // We join products and menus to get full info and ensure menu is active
+            const { data, error } = await supabase
+                .from('menu_items')
+                .select(`
+                    *,
+                    product:products!inner(*, stock(*), category:categories(*)),
+                    menu:menus!inner(*)
+                `)
+                .eq('menu.active', true)
+                .ilike('product.name', `%${term}%`);
+
+            if (error) throw error;
+
+            // Adjust the structure to match what the component expects
+            // We also need to fetch custom items that don't have product_id but match name
+            const { data: customData, error: customError } = await supabase
+                .from('menu_items')
+                .select(`
+                    *,
+                    menu:menus!inner(*)
+                `)
+                .eq('menu.active', true)
+                .is('product_id', null)
+                .ilike('custom_name', `%${term}%`);
+
+            if (customError) throw customError;
+
+            setGlobalResults([...(data || []), ...(customData || [])]);
+        } catch (error) {
+            console.error('Error in global search:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getItemName = (item: MenuItem | any): string => {
         if (item.product_id && item.product) return item.product.name;
         return item.custom_name || 'Item sem nome';
     };
 
-    const addToCart = (item: MenuItem) => {
-        if (!selectedMenu) return;
+    const displayedItems = useMemo(() => {
+        let items = isGlobalSearch ? globalResults : menuItems;
+
+        if (searchTerm && !isGlobalSearch) {
+            items = items.filter(item =>
+                getItemName(item).toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+
+        if (selectedCategoryId) {
+            items = items.filter(item => item.product?.category_id === selectedCategoryId);
+        }
+
+        return items;
+    }, [isGlobalSearch, globalResults, menuItems, searchTerm, selectedCategoryId]);
+
+    const addToCart = (item: MenuItem | any) => {
+        const targetMenu = isGlobalSearch ? item.menu : selectedMenu;
+        if (!targetMenu) return;
+
         const name = getItemName(item);
         const currentQty = getCartQty(item.id);
-        const increment = selectedMenu.type === 'quantidade' ? 2 : 1;
+        const increment = targetMenu.type === 'quantidade' ? 2 : 1;
 
         // Validation: Stock availability
         if (item.product_id && item.product) {
@@ -117,12 +217,12 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
             }
             return [...prev, {
                 menuItemId: item.id,
-                menuId: selectedMenu.id,
+                menuId: targetMenu.id,
                 productName: name,
                 price: item.price,
                 quantity: increment,
-                menuType: selectedMenu.type || 'tradicional',
-                menuName: selectedMenu.name,
+                menuType: targetMenu.type || 'tradicional',
+                menuName: targetMenu.name,
             }];
         });
     };
@@ -259,13 +359,61 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
                     </button>
                 </div>
 
+                {/* Search and Filters Bar - Only visible when a menu is selected OR when searching */}
+                {(selectedMenu || searchTerm.length > 0) && (
+                    <div className="px-6 py-4 bg-white/[0.02] border-b border-white/5 flex flex-col gap-4">
+                        <div className="relative group">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-primary transition-colors" size={18} />
+                            <input
+                                type="text"
+                                placeholder={selectedMenu ? "Pesquisar neste cardápio..." : "Pesquisar itens em todos os cardápios..."}
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setSearchTerm(val);
+                                    if (!selectedMenu) {
+                                        handleGlobalSearch(val);
+                                    }
+                                }}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-11 pr-4 py-3 text-white placeholder:text-gray-500 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 outline-none transition-all text-sm"
+                            />
+                        </div>
+
+                        {/* Category Filter Chips */}
+                        {(selectedMenu || isGlobalSearch) && categories.length > 0 && (
+                            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                                <Filter size={14} className="text-gray-500 shrink-0" />
+                                <button
+                                    onClick={() => setSelectedCategoryId(null)}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${!selectedCategoryId
+                                        ? 'bg-primary border-primary text-white'
+                                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'}`}
+                                >
+                                    todos
+                                </button>
+                                {categories.map(cat => (
+                                    <button
+                                        key={cat.id}
+                                        onClick={() => setSelectedCategoryId(cat.id === selectedCategoryId ? null : cat.id)}
+                                        className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${cat.id === selectedCategoryId
+                                            ? 'bg-primary border-primary text-white'
+                                            : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'}`}
+                                    >
+                                        {cat.name.toLowerCase()}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
                 {/* Body */}
                 <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
                     {loading ? (
                         <div className="flex items-center justify-center py-20">
                             <Loader2 className="animate-spin text-primary" size={40} />
                         </div>
-                    ) : !selectedMenu ? (
+                    ) : !selectedMenu && !isGlobalSearch ? (
                         /* Step 1: Menu Selection */
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             {menus.map(menu => (
@@ -288,18 +436,31 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
                             )}
                         </div>
                     ) : (
-                        /* Step 2: Item Selection */
+                        /* Step 2: Item Selection (Filtered or Menu-based) */
                         <div className="flex flex-col gap-3">
-                            {menuItems.map(item => {
+                            {isGlobalSearch && (
+                                <div className="flex items-center gap-2 mb-2">
+                                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Resultado da pesquisa global</span>
+                                </div>
+                            )}
+                            {displayedItems.map(item => {
                                 const name = getItemName(item);
                                 const qty = getCartQty(item.id);
+                                const itemMenu = isGlobalSearch ? item.menu : selectedMenu;
                                 return (
                                     <div
                                         key={item.id}
                                         className={`flex items-center justify-between p-4 rounded-xl border transition-all ${qty > 0 ? 'border-primary/50 bg-primary/5' : 'border-white/10 bg-white/5'}`}
                                     >
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-white font-medium">{name}</span>
+                                        <div className="flex flex-col gap-1 flex-1 min-w-0 mr-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-white font-medium truncate">{name}</span>
+                                                {isGlobalSearch && itemMenu && (
+                                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500 border border-white/10 font-bold uppercase truncate max-w-[100px]">
+                                                        {itemMenu.name}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="flex items-center gap-3">
                                                 <span className="text-primary font-bold font-numbers text-lg">R$ {item.price.toFixed(2)}</span>
                                                 {item.product && (
@@ -311,7 +472,7 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 shrink-0">
                                             {qty > 0 && (
                                                 <button
                                                     onClick={() => removeFromCart(item.id)}
@@ -333,9 +494,18 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
                                     </div>
                                 );
                             })}
-                            {menuItems.length === 0 && (
-                                <div className="py-20 text-center text-gray-500">
-                                    Nenhum item neste cardápio.
+                            {displayedItems.length === 0 && (
+                                <div className="py-20 text-center text-gray-500 flex flex-col items-center gap-3">
+                                    <span className="material-symbols-outlined text-4xl opacity-20">inventory_2</span>
+                                    <p>Nenhum item encontrado.</p>
+                                    {isGlobalSearch && (
+                                        <button
+                                            onClick={() => { setSearchTerm(''); setIsGlobalSearch(false); }}
+                                            className="text-primary text-xs font-bold uppercase hover:underline"
+                                        >
+                                            Ver todos os cardápios
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>

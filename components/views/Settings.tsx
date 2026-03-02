@@ -21,6 +21,10 @@ export const Settings: React.FC = () => {
     const [formData, setFormData] = useState<AuthUser>({ username: '', password: '', role: 'user' });
     const [isSaving, setIsSaving] = useState(false);
 
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [userToDelete, setUserToDelete] = useState<AuthUser | null>(null);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
     useEffect(() => {
         fetchUsers();
     }, []);
@@ -92,12 +96,30 @@ export const Settings: React.FC = () => {
         }
     };
 
-    const handleDelete = async (id: number) => {
-        if (!window.confirm("Tem certeza que deseja remover esta credencial de acesso?")) return;
+    const requestDelete = (user: AuthUser) => {
+        if (user.username === 'danielalencarsouz@gmail.com') {
+            showError("A credencial do administrador principal não pode ser removida.");
+            return;
+        }
+        setUserToDelete(user);
+        setDeleteConfirmText('');
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (deleteConfirmText !== "Eu tenho certeza desta exclusão") {
+            showError("A frase de confirmação está incorreta. Tente novamente.");
+            return;
+        }
+        if (!userToDelete || !userToDelete.id) return;
+
         try {
-            const { error } = await supabase.from('auth_users').delete().eq('id', id);
+            const { error } = await supabase.from('auth_users').delete().eq('id', userToDelete.id);
             if (error) throw error;
             showSuccess("Credencial removida com sucesso.");
+            setIsDeleteModalOpen(false);
+            setUserToDelete(null);
             fetchUsers();
         } catch (error) {
             console.error("Erro ao deletar usuário:", error);
@@ -176,7 +198,7 @@ export const Settings: React.FC = () => {
                                                 <Edit2 size={16} />
                                             </button>
                                             <button
-                                                onClick={() => user.id && handleDelete(user.id)}
+                                                onClick={() => requestDelete(user)}
                                                 className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                                                 title="Remover"
                                             >
@@ -237,7 +259,8 @@ export const Settings: React.FC = () => {
                                             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                                             className="w-full bg-[#1a1614] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none"
                                         >
-                                            <option value="user">Usuário Padrão (Sem edições de perfil/config)</option>
+                                            <option value="user">Usuário Padrão (Sem configurações)</option>
+                                            <option value="viewer">Visualizador (Apenas Pedidos, Histórico e Visualização de Cardápio)</option>
                                             <option value="admin">Administrador (Total Acesso)</option>
                                         </select>
                                     </div>
@@ -271,6 +294,57 @@ export const Settings: React.FC = () => {
                     </div>
                 )
             }
-        </main >
+
+            {/* Modal de Confirmação de Exclusão */}
+            {isDeleteModalOpen && userToDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div className="bg-[#120f0e] border border-red-500/30 rounded-2xl w-full max-w-md shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-red-500 flex items-center gap-2">
+                                <Trash2 size={24} />
+                                Confirmar Exclusão
+                            </h2>
+                            <button onClick={() => setIsDeleteModalOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={confirmDelete} className="p-6 flex-1">
+                            <p className="text-zinc-300 mb-4 leading-relaxed">
+                                Você está prestes a excluir a credencial de <strong className="text-white">{userToDelete.username}</strong>. Esta ação não pode ser desfeita.
+                            </p>
+                            <label className="block text-sm font-medium text-zinc-400 mb-2">
+                                Digite <strong className="text-white">"Eu tenho certeza desta exclusão"</strong> para confirmar:
+                            </label>
+                            <input
+                                type="text"
+                                required
+                                value={deleteConfirmText}
+                                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                className="w-full bg-[#1a1614] border border-red-500/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-red-500/50 transition-colors mb-6"
+                                placeholder="Digite a frase exata aqui..."
+                            />
+
+                            <div className="flex gap-3 justify-end">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsDeleteModalOpen(false)}
+                                    className="px-5 py-2.5 rounded-xl text-zinc-300 hover:bg-white/5 font-medium transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={deleteConfirmText !== "Eu tenho certeza desta exclusão"}
+                                    className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    Confirmar Exclusão
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </main>
     );
 };

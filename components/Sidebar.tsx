@@ -57,6 +57,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     ];
 
     const userRole = localStorage.getItem('userRole');
+    const isViewer = userRole === 'viewer';
+
+    const visibleMenuItems = menuItems.filter(item => {
+        if (isViewer) {
+            return ['orders', 'history', 'menu'].includes(item.viewName as string);
+        }
+        return true;
+    });
 
     const handleSettingsClick = () => {
         setIsAuthModalOpen(true);
@@ -104,7 +112,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <p className="text-gray-500 text-xs font-normal">{subtitle}</p>
             </div>
             <div className="flex flex-col gap-2">
-                {menuItems.map((item) => (
+                {visibleMenuItems.map((item) => (
                     <SidebarLink
                         key={item.label}
                         icon={item.icon}

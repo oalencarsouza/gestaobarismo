@@ -79,6 +79,7 @@ export const Profile: React.FC = () => {
     const isAdmin = userRole === 'admin';
 
     const [establishmentName, setEstablishmentName] = useState("GESBAR");
+    const [cnpj, setCnpj] = useState("");
     const [bannerUrl, setBannerUrl] = useState("https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2070&auto=format&fit=crop");
     const [logoUrl, setLogoUrl] = useState("/logo.svg");
 
@@ -86,18 +87,21 @@ export const Profile: React.FC = () => {
     const [isEditing, setIsEditing] = useState(false);
 
     const handleImageUpload = (type: 'banner' | 'logo') => {
+        if (!isAdmin) return;
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
         input.onchange = (e) => {
             const file = (e.target as HTMLInputElement).files?.[0];
             if (file) {
-                // In a real app, you would upload to Supabase Storage here
-                // For now, we'll create a local preview URL
-                const url = URL.createObjectURL(file);
-                if (type === 'banner') setBannerUrl(url);
-                else setLogoUrl(url);
-                showSuccess('Imagem carregada com sucesso!');
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const result = reader.result as string;
+                    if (type === 'banner') setBannerUrl(result);
+                    else setLogoUrl(result);
+                    showSuccess('Imagem carregada com sucesso! Lembre-se de salvar.');
+                };
+                reader.readAsDataURL(file);
             }
         };
         input.click();
@@ -122,6 +126,18 @@ export const Profile: React.FC = () => {
                 console.error("Failed to load hours", e);
             }
         }
+        const savedProfile = localStorage.getItem('businessProfile');
+        if (savedProfile) {
+            try {
+                const profile = JSON.parse(savedProfile);
+                if (profile.establishmentName) setEstablishmentName(profile.establishmentName);
+                if (profile.cnpj) setCnpj(profile.cnpj);
+                if (profile.bannerUrl) setBannerUrl(profile.bannerUrl);
+                if (profile.logoUrl) setLogoUrl(profile.logoUrl);
+            } catch (e) {
+                console.error("Failed to load profile", e);
+            }
+        }
     }, []);
 
     const handleSave = async () => {
@@ -131,10 +147,16 @@ export const Profile: React.FC = () => {
             // Simulate API delay
             await new Promise(resolve => setTimeout(resolve, 800));
             localStorage.setItem('businessHours', JSON.stringify(hours));
+            localStorage.setItem('businessProfile', JSON.stringify({
+                establishmentName,
+                cnpj,
+                bannerUrl,
+                logoUrl
+            }));
             showSuccess('Configurações salvas com sucesso!');
             setIsEditing(false);
         } catch (err) {
-            showError('Erro ao salvar as configurações.');
+            showError('Erro ao salvar as configurações. A imagem de capa/logo pode estar muito grande.');
         } finally {
             setIsSaving(false);
         }
@@ -159,12 +181,14 @@ export const Profile: React.FC = () => {
                     ></div>
                 </div>
 
-                <button
-                    onClick={() => handleImageUpload('banner')}
-                    className="absolute top-6 right-6 bg-black/50 hover:bg-primary text-white px-5 py-2.5 rounded-xl backdrop-blur-md flex items-center gap-2 text-sm font-bold transition-all border border-white/10 active:scale-95 shadow-xl z-20 opacity-0 group-hover:opacity-100"
-                >
-                    <Edit size={18} /> Alterar Capa
-                </button>
+                {isAdmin && (
+                    <button
+                        onClick={() => handleImageUpload('banner')}
+                        className="absolute top-6 right-6 bg-black/50 hover:bg-primary text-white px-5 py-2.5 rounded-xl backdrop-blur-md flex items-center gap-2 text-sm font-bold transition-all border border-white/10 active:scale-95 shadow-xl z-20 opacity-0 group-hover:opacity-100"
+                    >
+                        <Edit size={18} /> Alterar Capa
+                    </button>
+                )}
 
                 <div className="absolute -bottom-16 left-6 md:left-10 flex items-end gap-4 md:gap-6 z-10">
                     <div className="relative group/avatar">
@@ -175,12 +199,14 @@ export const Profile: React.FC = () => {
                                 alt="Profile"
                             />
                         </div>
-                        <button
-                            onClick={() => handleImageUpload('logo')}
-                            className="absolute bottom-1 md:bottom-2 right-1 md:right-2 size-8 md:size-11 bg-primary text-white rounded-full flex items-center justify-center shadow-lg hover:bg-orange-600 hover:scale-110 active:scale-90 transition-all border-2 border-[#120f0e] z-20"
-                        >
-                            <Camera size={16} />
-                        </button>
+                        {isAdmin && (
+                            <button
+                                onClick={() => handleImageUpload('logo')}
+                                className="absolute bottom-1 md:bottom-2 right-1 md:right-2 size-8 md:size-11 bg-primary text-white rounded-full flex items-center justify-center shadow-lg hover:bg-orange-600 hover:scale-110 active:scale-90 transition-all border-2 border-[#120f0e] z-20"
+                            >
+                                <Camera size={16} />
+                            </button>
+                        )}
                     </div>
                     <div className="pb-20 mb-2 md:mb-4">
                         <h1 className="text-2xl md:text-4xl font-black text-white drop-shadow-lg tracking-tight">{establishmentName}</h1>
@@ -215,7 +241,8 @@ export const Profile: React.FC = () => {
                                 type="text"
                                 readOnly={!isEditing || !isAdmin}
                                 placeholder="00.000.000/0000-00"
-                                defaultValue=""
+                                value={cnpj}
+                                onChange={(e) => setCnpj(e.target.value)}
                                 className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white placeholder-slate-600 transition-all outline-none ${isEditing && isAdmin ? 'border-primary/50 focus:ring-1 focus:ring-primary/20' : 'border-white/10'}`}
                             />
                         </div>

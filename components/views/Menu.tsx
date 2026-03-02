@@ -23,6 +23,9 @@ export const MenuView: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const userRole = localStorage.getItem('userRole');
+    const isViewer = userRole === 'viewer';
+
     // Edit Mode State
     const [isEditMode, setIsEditMode] = useState(false);
 
@@ -230,38 +233,42 @@ export const MenuView: React.FC = () => {
                     </div>
 
                     {selectedMenu ? (
-                        <button
-                            onClick={() => setIsAddItemModalOpen(true)}
-                            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all whitespace-nowrap"
-                        >
-                            <PlusCircle size={20} />
-                            Adicionar Item
-                        </button>
-                    ) : (
-                        <div className="flex gap-2">
-                            {/* Edit Mode Toggle */}
+                        !isViewer && (
                             <button
-                                onClick={() => setIsEditMode(!isEditMode)}
-                                className={`p-3 rounded-lg border transition-all ${isEditMode
-                                    ? 'bg-red-500/10 border-red-500/50 text-red-500'
-                                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
-                                    }`}
-                                title={isEditMode ? "Sair do modo de edição" : "Editar/Excluir cardápios"}
-                            >
-                                {isEditMode ? <X size={20} /> : <Pencil size={20} />}
-                            </button>
-
-                            <button
-                                onClick={() => {
-                                    setMenuToEdit(null);
-                                    setIsCreateMenuModalOpen(true);
-                                }}
+                                onClick={() => setIsAddItemModalOpen(true)}
                                 className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all whitespace-nowrap"
                             >
                                 <PlusCircle size={20} />
-                                Novo Cardápio
+                                Adicionar Item
                             </button>
-                        </div>
+                        )
+                    ) : (
+                        !isViewer && (
+                            <div className="flex gap-2">
+                                {/* Edit Mode Toggle */}
+                                <button
+                                    onClick={() => setIsEditMode(!isEditMode)}
+                                    className={`p-3 rounded-lg border transition-all ${isEditMode
+                                        ? 'bg-red-500/10 border-red-500/50 text-red-500'
+                                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:bg-white/10'
+                                        }`}
+                                    title={isEditMode ? "Sair do modo de edição" : "Editar/Excluir cardápios"}
+                                >
+                                    {isEditMode ? <X size={20} /> : <Pencil size={20} />}
+                                </button>
+
+                                <button
+                                    onClick={() => {
+                                        setMenuToEdit(null);
+                                        setIsCreateMenuModalOpen(true);
+                                    }}
+                                    className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all whitespace-nowrap"
+                                >
+                                    <PlusCircle size={20} />
+                                    Novo Cardápio
+                                </button>
+                            </div>
+                        )
                     )}
                 </div>
             </div>
@@ -284,7 +291,7 @@ export const MenuView: React.FC = () => {
                         >
                             {/* Icon Indicator: LayoutGrid (Normal) vs Trash2 (Edit Mode) */}
                             <div className="absolute top-0 right-0 p-4 transition-all z-10">
-                                {isEditMode ? (
+                                {isEditMode && !isViewer ? (
                                     <button
                                         onClick={(e) => handleDeleteMenu(menu, e)}
                                         className="p-2 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-lg"
@@ -321,7 +328,7 @@ export const MenuView: React.FC = () => {
                             </div>
 
                             {/* Edit Mode Overlay Hint */}
-                            {isEditMode && (
+                            {isEditMode && !isViewer && (
                                 <div className="absolute inset-x-0 bottom-0 bg-primary/10 py-1 text-center text-xs font-bold text-primary border-t border-primary/20">
                                     Clique para editar
                                 </div>
@@ -345,7 +352,7 @@ export const MenuView: React.FC = () => {
                                     <th className="px-6 py-4">Preço no Cardápio</th>
                                     <th className="px-6 py-4">Preço Original</th>
                                     {selectedMenu.type === 'quantidade' && <th className="px-6 py-4">Promoção</th>}
-                                    <th className="px-6 py-4 text-right">Ações</th>
+                                    {!isViewer && <th className="px-6 py-4 text-right">Ações</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/10 text-sm">
@@ -382,35 +389,37 @@ export const MenuView: React.FC = () => {
                                                 </span>
                                             </td>
                                         )}
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleEditItem(item);
-                                                    }}
-                                                    className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-primary transition-colors"
-                                                    title="Editar preço"
-                                                >
-                                                    <Pencil size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteMenuItem(item.id);
-                                                    }}
-                                                    className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-red-500 transition-colors"
-                                                    title="Remover do cardápio"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </div>
-                                        </td>
+                                        {!isViewer && (
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleEditItem(item);
+                                                        }}
+                                                        className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-primary transition-colors"
+                                                        title="Editar preço"
+                                                    >
+                                                        <Pencil size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleDeleteMenuItem(item.id);
+                                                        }}
+                                                        className="p-2 rounded-lg hover:bg-white/10 text-gray-400 hover:text-red-500 transition-colors"
+                                                        title="Remover do cardápio"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        )}
                                     </tr>
                                 ))}
                                 {filteredItems.length === 0 && (
                                     <tr>
-                                        <td colSpan={selectedMenu.type === 'quantidade' ? 5 : 4} className="px-6 py-20 text-center text-gray-500 italic">
+                                        <td colSpan={selectedMenu.type === 'quantidade' ? (isViewer ? 4 : 5) : (isViewer ? 3 : 4)} className="px-6 py-20 text-center text-gray-500 italic">
                                             Nenhum item adicionado a este cardápio ainda.
                                         </td>
                                     </tr>

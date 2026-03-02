@@ -14,6 +14,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 export const OrderHistory: React.FC = () => {
     const { showError, showSuccess } = useNotification();
+    const userRole = localStorage.getItem('userRole');
+    const isViewer = userRole === 'viewer';
     const [loading, setLoading] = useState(true);
     const [orders, setOrders] = useState<Order[]>([]);
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -247,13 +249,15 @@ export const OrderHistory: React.FC = () => {
                         label="PEDIDOS"
                         value={orders.length}
                     />
-                    <StatCard
-                        icon="payments"
-                        label="FATURAMENTO"
-                        value={`R$ ${dailyRevenue.toFixed(2)}`}
-                        iconColor="text-green-500"
-                        iconBgColor="bg-green-500/10"
-                    />
+                    {!isViewer && (
+                        <StatCard
+                            icon="payments"
+                            label="FATURAMENTO"
+                            value={`R$ ${dailyRevenue.toFixed(2)}`}
+                            iconColor="text-green-500"
+                            iconBgColor="bg-green-500/10"
+                        />
+                    )}
                 </div>
             </div>
 
@@ -461,34 +465,36 @@ export const OrderHistory: React.FC = () => {
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <button
-                                    onClick={() => selectedOrder.status === 'Aberto' && handleFinalizeOrder(selectedOrder)}
-                                    className={`col-span-2 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 group ${selectedOrder.status === 'Pago'
-                                        ? 'bg-green-500/10 text-green-500 border border-green-500/20 cursor-default'
-                                        : selectedOrder.status === 'Cancelado'
-                                            ? 'bg-red-500/10 text-red-500 border border-red-500/20 cursor-default'
-                                            : 'bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20'
-                                        }`}
-                                >
-                                    {selectedOrder.status === 'Pago' ? (
-                                        <>
-                                            <span className="material-symbols-outlined text-lg">check_circle</span>
-                                            Finalizado
-                                        </>
-                                    ) : selectedOrder.status === 'Cancelado' ? (
-                                        <>
-                                            <span className="material-symbols-outlined text-lg">cancel</span>
-                                            Cancelado
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span className="material-symbols-outlined text-lg">payments</span>
-                                            Finalizar
-                                        </>
-                                    )}
-                                </button>
-                            </div>
+                            {!isViewer && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <button
+                                        onClick={() => selectedOrder.status === 'Aberto' && handleFinalizeOrder(selectedOrder)}
+                                        className={`col-span-2 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 group ${selectedOrder.status === 'Pago'
+                                            ? 'bg-green-500/10 text-green-500 border border-green-500/20 cursor-default'
+                                            : selectedOrder.status === 'Cancelado'
+                                                ? 'bg-red-500/10 text-red-500 border border-red-500/20 cursor-default'
+                                                : 'bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20'
+                                            }`}
+                                    >
+                                        {selectedOrder.status === 'Pago' ? (
+                                            <>
+                                                <span className="material-symbols-outlined text-lg">check_circle</span>
+                                                Finalizado
+                                            </>
+                                        ) : selectedOrder.status === 'Cancelado' ? (
+                                            <>
+                                                <span className="material-symbols-outlined text-lg">cancel</span>
+                                                Cancelado
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="material-symbols-outlined text-lg">payments</span>
+                                                Finalizar
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </aside>
                 )}

@@ -4,8 +4,10 @@ import { LogOut } from 'lucide-react';
 interface HeaderProps {
     onLogout?: () => void;
 }
-
 export const Header: React.FC<HeaderProps> = ({ onLogout }) => {
+    const userRole = localStorage.getItem('userRole');
+    const profileImage = userRole === 'admin' ? 'url("/admin-profile.png")' : 'url("/logo.svg")';
+
     return (
         <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-white/10 px-10 py-3 bg-background-dark sticky top-0 z-50">
             <div className="flex items-center gap-8">
@@ -19,7 +21,7 @@ export const Header: React.FC<HeaderProps> = ({ onLogout }) => {
 
             <div className="flex flex-1 justify-end gap-8 items-center">
                 <div className="flex items-center gap-3">
-                    <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary/50" style={{ backgroundImage: `url("/logo.svg")` }}></div>
+                    <div className="bg-center bg-no-repeat aspect-square bg-cover rounded-full size-10 border-2 border-primary/50" style={{ backgroundImage: profileImage }}></div>
                     {onLogout && (
                         <button
                             onClick={onLogout}

@@ -13,8 +13,9 @@ const Stock = lazy(() => import('./components/views/Stock').then(m => ({ default
 const MenuView = lazy(() => import('./components/views/Menu').then(m => ({ default: m.MenuView })));
 const Reports = lazy(() => import('./components/views/Reports').then(m => ({ default: m.Reports })));
 const OrderView = lazy(() => import('./components/views/OrderView').then(m => ({ default: m.OrderView })));
+const Settings = lazy(() => import('./components/views/Settings').then(m => ({ default: m.Settings })));
 
-export type View = 'history' | 'profile' | 'dashboard' | 'stock' | 'reports' | 'menu' | 'orders';
+export type View = 'history' | 'profile' | 'dashboard' | 'stock' | 'reports' | 'menu' | 'orders' | 'settings';
 
 const App: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
@@ -82,6 +83,8 @@ const App: React.FC = () => {
                 return <Reports />;
             case 'profile':
                 return <Profile />;
+            case 'settings':
+                return <Settings />;
             /* case 'events':
                 return <Events />; */
             case 'orders':

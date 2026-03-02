@@ -149,13 +149,15 @@ export const Profile: React.FC = () => {
     return (
         <main className="max-w-full overflow-x-hidden min-w-0 md:max-w-[1280px] mx-auto pb-12 w-full animate-in fade-in duration-500">
             {/* Banner Section */}
-            <div className="relative w-full h-64 md:h-80 group overflow-hidden rounded-b-[2rem] shadow-2xl">
-                <div
-                    className="absolute inset-0 bg-slate-300 dark:bg-white/5 bg-cover bg-center"
-                    style={{
-                        backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.8)), url("${bannerUrl}")`
-                    }}
-                ></div>
+            <div className="relative w-full h-64 md:h-80 group">
+                <div className="absolute inset-0 overflow-hidden rounded-b-[2rem] shadow-2xl">
+                    <div
+                        className="w-full h-full bg-slate-300 dark:bg-white/5 bg-cover bg-center"
+                        style={{
+                            backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.8)), url("${bannerUrl}")`
+                        }}
+                    ></div>
+                </div>
 
                 <button
                     onClick={() => handleImageUpload('banner')}
@@ -172,12 +174,6 @@ export const Profile: React.FC = () => {
                                 src={logoUrl}
                                 alt="Profile"
                             />
-                            <button
-                                onClick={() => handleImageUpload('logo')}
-                                className="absolute inset-0 bg-black/40 opacity-0 group-hover/avatar:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
-                            >
-                                <Camera className="text-white" size={32} />
-                            </button>
                         </div>
                         <button
                             onClick={() => handleImageUpload('logo')}
@@ -187,7 +183,7 @@ export const Profile: React.FC = () => {
                         </button>
                     </div>
                     <div className="pb-20 mb-2 md:mb-4">
-                        <h1 className="text-2xl md:text-4xl font-black text-white drop-shadow-lg tracking-tight uppercase">{establishmentName}</h1>
+                        <h1 className="text-2xl md:text-4xl font-black text-white drop-shadow-lg tracking-tight">{establishmentName}</h1>
                         <p className="text-primary font-bold flex items-center gap-2 text-sm md:text-lg">
                             <span className="size-2 rounded-full bg-green-500 animate-pulse"></span>
                             Bebidas & Porções

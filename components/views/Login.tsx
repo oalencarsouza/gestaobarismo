@@ -21,7 +21,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
         // Manual validation
         const newFieldErrors: { username?: string; password?: string } = {};
-        if (!username.trim()) newFieldErrors.username = 'Preencha o usuário';
+        if (!username.trim()) newFieldErrors.username = 'Preencha o acesso';
         if (!password.trim()) newFieldErrors.password = 'Preencha a senha';
 
         if (Object.keys(newFieldErrors).length > 0) {
@@ -31,23 +31,58 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
         }
 
         try {
-            const { data, error: supabaseError } = await supabase
+            // 1. Tentar Login Legado (Tabela auth_users) primeiro para testes
+            const { data: legacyUser, error: legacyError } = await supabase
                 .from('auth_users')
                 .select('*')
                 .eq('username', username)
                 .eq('password', password)
-                .single();
+                .maybeSingle();
 
-            if (supabaseError || !data) {
-                setError('Usuário ou senha incorretos.');
+            if (legacyUser && !legacyError) {
+                localStorage.setItem('isLoggedIn', 'true');
+                localStorage.setItem('username', legacyUser.username);
+                localStorage.setItem('userRole', legacyUser.role || 'user');
+                onLogin();
                 setLoading(false);
                 return;
             }
 
-            // Store in localStorage for persistence
-            localStorage.setItem('isLoggedIn', 'true');
-            localStorage.setItem('username', username);
-            onLogin();
+            // 2. Se não encontrou no legado, tentar Supabase Auth (E-mail)
+            if (username.includes('@')) {
+                const { data, error: authError } = await supabase.auth.signInWithPassword({
+                    email: username,
+                    password: password,
+                });
+
+                if (authError) {
+                    if (authError.message === 'Email not confirmed') {
+                        setError('Por favor, confirme seu e-mail antes de entrar.');
+                    } else {
+                        setError('E-mail ou senha incorretos.');
+                    }
+                    setLoading(false);
+                    return;
+                }
+
+                if (data?.user) {
+                    const { data: profile } = await supabase
+                        .from('user_profiles')
+                        .select('role')
+                        .eq('id', data.user.id)
+                        .single();
+
+                    const role = profile?.role || data.user.user_metadata?.role || 'user';
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('username', data.user.email || '');
+                    localStorage.setItem('userRole', role);
+                    onLogin();
+                    return;
+                }
+            } else {
+                setError('Usuário ou senha incorretos.');
+            }
+
         } catch (err) {
             setError('Ocorreu um erro ao tentar entrar. Tente novamente.');
             console.error(err);
@@ -83,7 +118,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     {/* Form */}
                     <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                         <div>
-                            <label className="mb-2 block text-sm font-medium text-zinc-300">Usuário</label>
+                            <label className="mb-2 block text-sm font-medium text-zinc-300">E-mail ou Usuário</label>
                             <div className="relative group">
                                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-zinc-500 group-focus-within:text-orange-500 transition-colors">
                                     <Mail size={18} />
@@ -93,7 +128,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     className={`block w-full rounded-lg border bg-white/5 py-3 pl-10 pr-3 text-white placeholder-zinc-500 transition-all focus:outline-none focus:ring-1 ${fieldErrors.username ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/50' : 'border-white/10 focus:border-orange-500/50 focus:ring-orange-500/50'}`}
-                                    placeholder="admin"
+                                    placeholder="exemplo@email.com ou usuário"
                                 />
                                 {fieldErrors.username && (
                                     <div className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-500 animate-in fade-in slide-in-from-top-1 duration-200">

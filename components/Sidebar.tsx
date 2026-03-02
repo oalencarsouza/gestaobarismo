@@ -50,6 +50,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { icon: 'person', label: 'Perfil', viewName: 'profile' },
     ];
 
+    const userRole = localStorage.getItem('userRole');
+
     return (
         <aside className="w-64 border-r border-white/5 p-4 flex-col gap-6 bg-background-dark hidden md:flex">
             <div className="flex flex-col gap-1 px-3">
@@ -67,14 +69,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     />
                 ))}
             </div>
-            <div className="mt-auto pt-4">
-                <SidebarLink
-                    icon="settings"
-                    label="Configurações"
-                    isActive={false}
-                    onClick={() => { }}
-                />
-            </div>
+            {userRole === 'admin' && (
+                <div className="mt-auto pt-4">
+                    <SidebarLink
+                        icon="settings"
+                        label="Configurações"
+                        isActive={false}
+                        onClick={() => { }}
+                    />
+                </div>
+            )}
         </aside>
     );
 };

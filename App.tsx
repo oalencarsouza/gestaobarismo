@@ -51,6 +51,7 @@ const App: React.FC = () => {
     const handleLogout = () => {
         localStorage.removeItem('isLoggedIn');
         localStorage.removeItem('username');
+        localStorage.removeItem('userRole');
         sessionStorage.removeItem('welcomeDismissed');
         setIsLoggedIn(false);
         setShowWelcomeModal(false);

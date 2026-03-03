@@ -580,10 +580,10 @@ export const OrderView: React.FC<OrderViewProps> = ({
     return (
         <main className="flex-1 flex flex-col p-4 md:p-8 gap-8 overflow-y-auto overflow-x-hidden min-w-0 bg-background-dark">
             {/* Header */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-                <div>
+            <div className="flex flex-col lg:flex-row justify-between items-center lg:items-center text-center lg:text-left gap-6">
+                <div className="flex flex-col items-center lg:items-start w-full lg:w-auto">
                     <h2 className="text-white text-3xl font-black tracking-tight">Gestão de Pedidos</h2>
-                    <p className="text-gray-400 text-base mt-1">Gerencie os pedidos em aberto e novas comandas.</p>
+                    <p className="text-gray-400 text-sm md:text-base mt-1">Gerencie os pedidos em aberto e novas comandas.</p>
                 </div>
                 <button
                     onClick={() => {
@@ -591,7 +591,7 @@ export const OrderView: React.FC<OrderViewProps> = ({
                         setTempCart([]);
                         setIsAddItemModalOpen(true);
                     }}
-                    className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white px-8 py-4 rounded-2xl font-black uppercase italic tracking-wider shadow-xl shadow-primary/20 transition-all active:scale-95"
                 >
                     <PlusCircle size={20} />
                     Novo Pedido
@@ -640,59 +640,99 @@ export const OrderView: React.FC<OrderViewProps> = ({
             {/* Content */}
             <div className="flex flex-col xl:flex-row gap-6 items-start">
                 {/* Orders Table */}
-                <div className="flex-1 overflow-x-auto rounded-2xl border border-white/10 bg-white/5 shadow-xl">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-white/5 text-gray-400 text-xs font-bold border-b border-white/10 uppercase tracking-wider">
-                                <th className="px-6 py-5">Cliente</th>
-                                <th className="px-6 py-5">Horário</th>
-                                <th className="px-6 py-5">Valor Total</th>
-                                <th className="px-6 py-5">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/10 text-sm">
-                            {paginatedOrders.map(order => (
-                                <tr
-                                    key={order.id}
-                                    onClick={() => setSelectedOrder(order)}
-                                    className={`cursor-pointer transition-colors group ${selectedOrder?.id === order.id
-                                        ? 'bg-primary/5 border-l-4 border-l-primary'
-                                        : 'hover:bg-white/[0.03]'
-                                        }`}
-                                >
-                                    <td className="px-6 py-4">
-                                        <div className="flex flex-col">
-                                            <span className="text-white font-bold">{order.client_name}</span>
-                                            <span className="text-gray-500 text-xs">{order.client_phone || order.id.slice(0, 8)}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-gray-400">
-                                        {order.created_at
-                                            ? new Date(order.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-                                            : '—'
-                                        }
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className="text-primary font-black font-numbers text-lg">
+                {/* Orders - Cards for Mobile / Table for Desktop */}
+                <div className="flex-1 w-full lg:min-w-0">
+                    {/* Table View (Desktop) */}
+                    <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/10 bg-white/5 shadow-xl">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-white/5 text-gray-400 text-xs font-bold border-b border-white/10 uppercase tracking-wider">
+                                    <th className="px-6 py-5">Cliente</th>
+                                    <th className="px-6 py-5">Horário</th>
+                                    <th className="px-6 py-5">Valor Total</th>
+                                    <th className="px-6 py-5">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/10 text-sm">
+                                {paginatedOrders.map(order => (
+                                    <tr
+                                        key={order.id}
+                                        onClick={() => setSelectedOrder(order)}
+                                        className={`cursor-pointer transition-colors group ${selectedOrder?.id === order.id
+                                            ? 'bg-primary/5 border-l-4 border-l-primary'
+                                            : 'hover:bg-white/[0.03]'
+                                            }`}
+                                    >
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-white font-bold">{order.client_name}</span>
+                                                <span className="text-gray-500 text-xs">{order.client_phone || order.id.slice(0, 8)}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-gray-400">
+                                            {order.created_at
+                                                ? new Date(order.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                                                : '—'
+                                            }
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="text-primary font-black font-numbers text-lg">
+                                                R$ {Number(order.total).toFixed(2)}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${STATUS_COLORS[order.status]}`}>
+                                                {order.status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Card View (Mobile) */}
+                    <div className="grid grid-cols-1 gap-4 md:hidden">
+                        {paginatedOrders.map(order => (
+                            <div
+                                key={order.id}
+                                onClick={() => setSelectedOrder(order)}
+                                className={`p-5 rounded-2xl border transition-all active:scale-[0.98] ${selectedOrder?.id === order.id
+                                    ? 'bg-primary/10 border-primary/50 shadow-[0_0_20px_rgba(255,107,0,0.1)]'
+                                    : 'bg-white/5 border-white/10 shadow-lg'
+                                    }`}
+                            >
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 className="text-white font-black uppercase italic tracking-tight">{order.client_name}</h3>
+                                        <span className="text-gray-500 text-[10px] uppercase font-black tracking-widest leading-none">
+                                            {order.created_at ? new Date(order.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '---'}
+                                        </span>
+                                    </div>
+                                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${STATUS_COLORS[order.status]}`}>
+                                        {order.status}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-end border-t border-white/5 pt-4">
+                                    <div className="flex flex-col">
+                                        <span className="text-gray-600 text-[10px] font-black uppercase tracking-widest">Valor Total</span>
+                                        <span className="text-primary font-black text-xl italic tracking-tighter">
                                             R$ {Number(order.total).toFixed(2)}
                                         </span>
-                                    </td>
-                                    <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${STATUS_COLORS[order.status]}`}>
-                                            {order.status}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                            {paginatedOrders.length === 0 && (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-20 text-center text-gray-500 italic">
-                                        Nenhum pedido encontrado.
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                                    </div>
+                                    <div className="size-8 rounded-full bg-white/5 flex items-center justify-center text-zinc-500">
+                                        <ChevronRight size={18} />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {paginatedOrders.length === 0 && (
+                        <div className="p-20 text-center text-gray-500 italic bg-white/5 rounded-2xl border border-white/10">
+                            Nenhum pedido encontrado.
+                        </div>
+                    )}
 
                     {/* Pagination Controls */}
                     {totalPages > 1 && (

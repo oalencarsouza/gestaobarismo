@@ -15,6 +15,8 @@ interface SidebarProps {
     setView: (view: View) => void;
     title?: string;
     subtitle?: string;
+    isMobileOpen?: boolean;
+    onClose?: () => void;
 }
 
 const SidebarLink: React.FC<{
@@ -25,13 +27,13 @@ const SidebarLink: React.FC<{
 }> = ({ icon, label, isActive, onClick }) => (
     <div
         onClick={onClick}
-        className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-colors ${isActive
-            ? 'bg-primary/10 text-primary border border-primary/20'
+        className={`flex items-center gap-3 px-3 py-3 md:py-2 rounded-xl md:rounded-lg cursor-pointer transition-all active:scale-95 ${isActive
+            ? 'bg-primary/15 text-primary border border-primary/20 shadow-lg shadow-primary/5'
             : 'text-gray-400 hover:bg-white/5'
             }`}
     >
-        <span className="material-symbols-outlined">{icon}</span>
-        <p className="text-sm font-medium">{label}</p>
+        <span className="material-symbols-outlined text-[22px] md:text-[20px]">{icon}</span>
+        <p className="text-sm font-bold md:font-medium">{label}</p>
     </div>
 );
 
@@ -39,7 +41,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     currentView,
     setView,
     title = 'Gerenciamento',
-    subtitle = 'Painel do Administrador'
+    subtitle = 'Painel do Administrador',
+    isMobileOpen = false,
+    onClose
 }) => {
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [adminPassword, setAdminPassword] = useState('');
@@ -98,6 +102,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 setIsAuthModalOpen(false);
                 setView('settings');
                 setIsLoadingAuth(false);
+                if (onClose) onClose();
             }
         } catch (error) {
             setAuthError('Erro na verificação. Tente novamente.');
@@ -105,15 +110,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
         }
     };
 
-    return (
-        <aside className="w-64 border-r border-white/5 p-4 flex-col gap-6 bg-background-dark hidden md:flex relative z-50">
+    const sidebarContent = (
+        <>
             <div className="flex flex-col gap-1 px-3">
-                <h1 className="text-white text-base font-bold leading-normal text-shadow-sm">{title}</h1>
+                <div className="flex items-center justify-between">
+                    <h1 className="text-white text-base font-bold leading-normal text-shadow-sm">{title}</h1>
+                    <button onClick={onClose} className="md:hidden text-zinc-500 hover:text-white transition-colors">
+                        <X size={20} />
+                    </button>
+                </div>
                 <p className="text-gray-500 text-[10px] uppercase font-black tracking-widest opacity-60">
                     {isViewer ? 'Acesso Operador' : subtitle}
                 </p>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 mt-4 md:mt-0">
                 {visibleMenuItems.map((item) => (
                     <SidebarLink
                         key={item.label}
@@ -132,6 +142,28 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         isActive={currentView === 'settings'}
                         onClick={handleSettingsClick}
                     />
+                </div>
+            )}
+        </>
+    );
+
+    return (
+        <>
+            {/* Desktop Sidebar */}
+            <aside className="w-64 border-r border-white/5 p-4 flex-col gap-6 bg-background-dark hidden md:flex relative z-40">
+                {sidebarContent}
+            </aside>
+
+            {/* Mobile Sidebar Overlay */}
+            {isMobileOpen && (
+                <div className="fixed inset-0 z-[100] md:hidden">
+                    <div
+                        className="absolute inset-0 bg-black/80 backdrop-blur-md animate-in fade-in duration-700 ease-in-out"
+                        onClick={onClose}
+                    />
+                    <aside className="absolute top-0 left-0 w-72 h-full bg-[#0a0a0a] border-r border-white/10 p-6 flex flex-col gap-8 shadow-[20px_0_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-left zoom-in-95 duration-800 ease-[cubic-bezier(0.16,1,0.3,1)]">
+                        {sidebarContent}
+                    </aside>
                 </div>
             )}
 
@@ -186,6 +218,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                 </div>
             )}
-        </aside>
+        </>
     );
 };

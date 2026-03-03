@@ -25,6 +25,7 @@ const App: React.FC = () => {
     });
     const [showWelcomeModal, setShowWelcomeModal] = useState(false);
     const [triggerNewOrder, setTriggerNewOrder] = useState(false);
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
     useEffect(() => {
         localStorage.setItem('activeView', view);
@@ -123,9 +124,14 @@ const App: React.FC = () => {
                     onNewOrder={handleWelcomeNewOrder}
                     onManagement={handleWelcomeManagement}
                 />
-                <Header onLogout={handleLogout} />
+                <Header onLogout={handleLogout} onMenuClick={() => setIsMobileMenuOpen(true)} />
                 <div className="flex flex-1 overflow-hidden">
-                    <Sidebar currentView={view} setView={setView} />
+                    <Sidebar
+                        currentView={view}
+                        setView={(v) => { setView(v); setIsMobileMenuOpen(false); }}
+                        isMobileOpen={isMobileMenuOpen}
+                        onClose={() => setIsMobileMenuOpen(false)}
+                    />
                     <div className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
                         <Suspense fallback={
                             <div className="flex-1 flex items-center justify-center h-full bg-background-dark/50 backdrop-blur-sm">

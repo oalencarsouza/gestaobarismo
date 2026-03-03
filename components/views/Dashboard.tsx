@@ -194,11 +194,11 @@ export const Dashboard: React.FC = () => {
                     </h2>
                     <p className="text-gray-400 text-sm mt-1 uppercase tracking-widest font-black opacity-60">Bar Manager Pro // Live Monitor</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                     <select
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-lg px-4 py-2 text-white text-xs font-black uppercase tracking-widest focus:ring-primary focus:border-primary outline-none cursor-pointer hover:bg-white/10 transition-colors"
+                        className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-[10px] sm:text-xs font-black uppercase tracking-widest focus:ring-primary focus:border-primary outline-none cursor-pointer hover:bg-white/10 transition-colors"
                     >
                         <option value="today" className="bg-background-dark">Hoje</option>
                         <option value="7days" className="bg-background-dark">Últimos 7 dias</option>
@@ -208,10 +208,11 @@ export const Dashboard: React.FC = () => {
                     <button
                         onClick={fetchDashboardData}
                         disabled={loading}
-                        className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-50"
+                        className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white p-2 sm:px-4 sm:py-2 rounded-lg font-black uppercase tracking-widest text-[10px] sm:text-xs shadow-lg shadow-primary/20 transition-all active:scale-95 disabled:opacity-50"
+                        title="Atualizar Dados"
                     >
                         <span className={`material-symbols-outlined text-lg ${loading ? 'animate-spin' : ''}`}>refresh</span>
-                        {loading ? 'Sincronizando...' : 'Atualizar'}
+                        <span className="hidden sm:inline">{loading ? 'Sincronizando...' : 'Atualizar'}</span>
                     </button>
                 </div>
             </div>
@@ -220,7 +221,7 @@ export const Dashboard: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <StatCard
                     icon="payments"
-                    label="FATURAMENTO"
+                    label={window.innerWidth < 640 ? "FATUR." : "FATURAMENTO"}
                     value={`R$ ${stats.revenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                     iconBgColor="bg-primary/20"
                     iconColor="text-primary"
@@ -241,7 +242,7 @@ export const Dashboard: React.FC = () => {
                 />
                 <StatCard
                     icon="local_bar"
-                    label="TICKET MÉDIO"
+                    label={window.innerWidth < 640 ? "T. MÉDIO" : "TICKET MÉDIO"}
                     value={`R$ ${stats.avgTicket.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                     change={stats.avgTicketChange}
                     positive={stats.avgTicketPositive}
@@ -262,27 +263,27 @@ export const Dashboard: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                         {/* Produto Mais Vendido */}
-                        <div className="relative bg-white/5 border border-white/10 rounded-2xl p-8 shadow-2xl overflow-hidden group hover:border-primary/30 transition-all">
-                            <div className="absolute -right-10 -top-10 size-40 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors duration-700"></div>
+                        <div className="relative bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-8 shadow-2xl overflow-hidden group hover:border-primary/30 transition-all">
+                            <div className="absolute -right-10 -top-10 size-4 size-40 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors duration-700"></div>
                             <div className="absolute top-6 right-6 opacity-[0.03]">
                                 <span className="material-symbols-outlined" style={{ fontSize: '120px' }}>emoji_events</span>
                             </div>
                             <div className="relative z-10">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="size-12 rounded-xl bg-primary/20 flex items-center justify-center">
-                                        <span className="material-symbols-outlined text-primary text-2xl">local_fire_department</span>
+                                <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                                    <div className="size-10 sm:size-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                                        <span className="material-symbols-outlined text-primary text-xl sm:text-2xl">local_fire_department</span>
                                     </div>
                                     <div>
-                                        <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Produto campeão</p>
-                                        <p className="text-gray-600 text-[9px] font-bold uppercase tracking-widest">{filterLabel}</p>
+                                        <p className="text-gray-500 text-[9px] sm:text-[10px] font-black uppercase tracking-widest">Produto campeão</p>
+                                        <p className="text-gray-600 text-[8px] sm:text-[9px] font-bold uppercase tracking-widest">{filterLabel}</p>
                                     </div>
                                 </div>
                                 {highlights.topProduct ? (
                                     <div>
-                                        <p className="text-white text-3xl font-black uppercase italic tracking-tight leading-tight">{highlights.topProduct.name}</p>
-                                        <div className="flex items-baseline gap-2 mt-3">
-                                            <span className="text-primary text-5xl font-black font-numbers">{highlights.topProduct.quantity}</span>
-                                            <span className="text-gray-500 text-xs font-black uppercase tracking-widest">unidades vendidas</span>
+                                        <p className="text-white text-2xl sm:text-3xl font-black uppercase italic tracking-tight leading-tight">{highlights.topProduct.name}</p>
+                                        <div className="flex items-baseline gap-2 mt-2 sm:mt-3">
+                                            <span className="text-primary text-4xl sm:text-5xl font-black font-numbers">{highlights.topProduct.quantity}</span>
+                                            <span className="text-gray-500 text-[10px] sm:text-xs font-black uppercase tracking-widest">unidades vendidas</span>
                                         </div>
                                     </div>
                                 ) : (

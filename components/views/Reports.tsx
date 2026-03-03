@@ -369,7 +369,7 @@ export const Reports: React.FC = () => {
                             </button>
                         </div>
 
-                        <div className="overflow-x-auto">
+                        <div className="hidden sm:block overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-white/5 text-gray-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-white/10">
@@ -401,6 +401,30 @@ export const Reports: React.FC = () => {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+
+                        {/* Mobile Cards View */}
+                        <div className="sm:hidden flex flex-col divide-y divide-white/5">
+                            {dailyStats.map((row, i) => (
+                                <div key={i} className="p-5 flex flex-col gap-4 bg-white/[0.01] hover:bg-white/[0.03] transition-colors">
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex flex-col">
+                                            <span className="text-white font-black text-sm italic uppercase tracking-tight">{row.date}</span>
+                                            <span className="text-gray-500 text-[10px] font-black uppercase tracking-widest opacity-60">{row.weekday}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
+                                            <span className="text-gray-400 text-[10px] font-black uppercase tracking-widest">Pedidos</span>
+                                            <span className="text-white font-black font-numbers text-xs">{row.orders}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-baseline mt-2">
+                                        <span className="text-gray-500 text-[9px] font-black uppercase tracking-widest">Valor Bruto Total</span>
+                                        <span className="text-primary font-black font-numbers text-xl italic">
+                                            R$ {row.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>

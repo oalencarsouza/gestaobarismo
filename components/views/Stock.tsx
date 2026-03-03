@@ -348,8 +348,8 @@ export const Stock: React.FC = () => {
                 </div>
             </div>
 
-            {/* Products Table */}
-            <div className="overflow-x-auto rounded-2xl border border-white/10 bg-white/5 shadow-xl">
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto rounded-2xl border border-white/10 bg-white/5 shadow-xl">
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-white/5 text-gray-400 text-xs font-bold border-b border-white/10 uppercase tracking-wider">
@@ -377,7 +377,7 @@ export const Stock: React.FC = () => {
                                             </div>
                                             <div className="flex flex-col">
                                                 <span className="text-white font-bold">{product.name}</span>
-                                                <span className="text-gray-500 text-xs">{product.id.slice(0, 8)}</span>
+                                                <span className="text-gray-500 text-[10px]">{product.id.slice(0, 8)}</span>
                                             </div>
                                         </div>
                                     </td>
@@ -408,7 +408,6 @@ export const Stock: React.FC = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center justify-end gap-1">
-
                                             <button
                                                 onClick={() => { setEditingProduct(product); setIsEditModalOpen(true); }}
                                                 className="p-2 rounded-lg hover:bg-blue-500/10 text-gray-400 hover:text-white transition-colors"
@@ -428,6 +427,62 @@ export const Stock: React.FC = () => {
                         })}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Mobile Cards View */}
+            <div className="md:hidden flex flex-col gap-4">
+                {paginatedProducts.map(product => {
+                    const category = categories.find(c => c.id === product.category_id);
+                    const isQtyLow = (product.stock?.quantity || 0) < (product.stock?.min_quantity || 0);
+
+                    return (
+                        <div key={product.id} className="bg-white/5 border border-white/10 rounded-2xl p-4 shadow-xl backdrop-blur-sm">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                        <span className="material-symbols-outlined text-primary text-xl">
+                                            {category?.icon || 'local_bar'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-white font-black text-sm uppercase italic leading-tight">{product.name}</span>
+                                        <span className="text-gray-500 text-[10px] font-black tracking-widest uppercase">{category?.name || 'Sem Categoria'}</span>
+                                    </div>
+                                </div>
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => { setEditingProduct(product); setIsEditModalOpen(true); }}
+                                        className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-white transition-colors"
+                                    >
+                                        <Edit2 size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteClick(product.id)}
+                                        className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-red-500 transition-colors"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/5">
+                                <div className="flex flex-col">
+                                    <span className="text-gray-500 text-[9px] font-black uppercase tracking-widest">Preço Sugerido</span>
+                                    <span className="text-primary font-black font-numbers text-lg">R$ {product.price.toFixed(2)}</span>
+                                </div>
+                                <div className="flex flex-col items-end">
+                                    <span className="text-gray-500 text-[9px] font-black uppercase tracking-widest">Quantidade Real</span>
+                                    <div className="flex items-baseline gap-1">
+                                        <span className={`font-black text-xl font-numbers ${isQtyLow ? 'text-red-500 underline decoration-red-500/50' : 'text-white'}`}>
+                                            {product.stock?.quantity}
+                                        </span>
+                                        <span className="text-gray-500 text-[10px] uppercase font-bold">{product.stock?.unit || 'un'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
 
             {/* Pagination Controls */}

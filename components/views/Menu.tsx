@@ -5,7 +5,7 @@ import { CreateMenuModal } from '../CreateMenuModal';
 import { AddMenuItemModal } from '../AddMenuItemModal';
 import { ConfirmModal } from '../ConfirmModal';
 import { useNotification } from '../../contexts/NotificationContext';
-import { PlusCircle, Search, ChevronLeft, Trash2, LayoutGrid, Loader2, Pencil, Coffee, Percent, Copy, Sparkles, X } from 'lucide-react';
+import { PlusCircle, Search, ChevronLeft, ChevronRight, Trash2, LayoutGrid, Loader2, Pencil, Coffee, Percent, Copy, Sparkles, X } from 'lucide-react';
 import type { Menu, MenuItem, MenuType } from '../../types';
 
 const TYPE_CONFIG: Record<MenuType, { label: string; color: string; icon: React.ReactNode }> = {
@@ -22,6 +22,10 @@ export const MenuView: React.FC = () => {
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 6;
 
     const userRole = localStorage.getItem('userRole');
     const isViewer = userRole === 'viewer';
@@ -57,8 +61,13 @@ export const MenuView: React.FC = () => {
     React.useEffect(() => {
         if (selectedMenu) {
             fetchMenuItems(selectedMenu.id);
+            setCurrentPage(1); // Reset page on menu change
         }
     }, [selectedMenu]);
+
+    React.useEffect(() => {
+        setCurrentPage(1); // Reset page on search
+    }, [searchTerm]);
 
     const fetchMenus = async () => {
         setLoading(true);
@@ -183,13 +192,30 @@ export const MenuView: React.FC = () => {
         return name.toLowerCase().includes(searchTerm.toLowerCase());
     });
 
+    // Pagination Logic
+    const totalItems = filteredItems.length;
+    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginatedItems = filteredItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
     const getTypeBadge = (menu: Menu) => {
         const config = TYPE_CONFIG[menu.type || 'tradicional'];
         return (
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${config.color}`}>
                 {config.icon}
-                {config.label}
-                {menu.type === 'desconto' && menu.discount_percent ? ` ${menu.discount_percent}%` : ''}
+                {menu.type === 'quantidade' ? (
+                    <>
+                        <span className="hidden sm:inline">{config.label}</span>
+                        <span className="sm:hidden font-black">1 = 2!</span>
+                    </>
+                ) : menu.type === 'desconto' && menu.discount_percent ? (
+                    <>
+                        <span className="hidden sm:inline">{config.label} {menu.discount_percent}%</span>
+                        <span className="sm:hidden font-black">{menu.discount_percent}%</span>
+                    </>
+                ) : (
+                    <span>{config.label}</span>
+                )}
             </span>
         );
     };
@@ -344,7 +370,8 @@ export const MenuView: React.FC = () => {
             ) : (
                 /* Menu Details View (Items) */
                 <div className="space-y-6">
-                    <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/5">
+                    {/* Desktop View (Table) */}
+                    <div className="hidden md:block overflow-x-auto rounded-xl border border-white/10 bg-white/5 shadow-xl">
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-white/5 text-gray-400 text-xs font-medium border-b border-white/10 uppercase tracking-wider">
@@ -356,12 +383,14 @@ export const MenuView: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/10 text-sm">
-                                {filteredItems.map(item => (
+                                {paginatedItems.map(item => (
                                     <tr key={item.id} className="hover:bg-white/5 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-white font-medium">{getItemName(item)}</span>
+                                                    <span className={`text-white font-medium ${!item.product_id ? 'underline decoration-purple-500/50 underline-offset-4' : ''}`}>
+                                                        {getItemName(item)}
+                                                    </span>
                                                     {!item.product_id && (
                                                         <span className="text-[10px] font-bold text-purple-400 bg-purple-500/10 border border-purple-500/30 px-1.5 py-0.5 rounded-full uppercase">
                                                             Personalizado
@@ -417,7 +446,7 @@ export const MenuView: React.FC = () => {
                                         )}
                                     </tr>
                                 ))}
-                                {filteredItems.length === 0 && (
+                                {paginatedItems.length === 0 && (
                                     <tr>
                                         <td colSpan={selectedMenu.type === 'quantidade' ? (isViewer ? 4 : 5) : (isViewer ? 3 : 4)} className="px-6 py-20 text-center text-gray-500 italic">
                                             Nenhum item adicionado a este cardápio ainda.
@@ -427,6 +456,87 @@ export const MenuView: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Mobile View (Cards) */}
+                    <div className="grid grid-cols-1 gap-3 md:hidden">
+                        {paginatedItems.map(item => (
+                            <div key={item.id} className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between group active:scale-[0.98] transition-all">
+                                <div className="flex flex-col min-w-0 flex-1">
+                                    <span className={`text-white font-black uppercase italic tracking-tight truncate ${!item.product_id ? 'underline decoration-purple-500/60 underline-offset-4' : ''}`}>
+                                        {getItemName(item)}
+                                    </span>
+                                    <span className="text-gray-500 text-[10px] uppercase font-black tracking-widest leading-none mt-1">
+                                        {getItemSubtext(item)}
+                                    </span>
+                                </div>
+                                <div className="flex items-center gap-4 ml-4">
+                                    <span className="text-primary font-black text-lg italic tracking-tighter whitespace-nowrap">
+                                        R$ {item.price.toFixed(2)}
+                                    </span>
+                                    {!isViewer && (
+                                        <div className="flex items-center gap-1 border-l border-white/5 pl-3">
+                                            <button
+                                                onClick={() => handleEditItem(item)}
+                                                className="p-2 text-zinc-500 hover:text-primary transition-colors"
+                                            >
+                                                <Pencil size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteMenuItem(item.id)}
+                                                className="p-2 text-zinc-500 hover:text-red-500 transition-colors"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                        {paginatedItems.length === 0 && (
+                            <div className="py-20 text-center text-gray-500 italic bg-white/5 rounded-2xl border border-white/10">
+                                Nenhum item neste cardápio.
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-white/10 text-sm text-gray-400 bg-white/5 md:bg-transparent rounded-2xl md:rounded-none">
+                            <span className="hidden sm:inline">
+                                Exibindo items {startIndex + 1} a {Math.min(startIndex + ITEMS_PER_PAGE, totalItems)} de {totalItems}
+                            </span>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    disabled={currentPage === 1}
+                                    className="p-2 rounded-xl bg-white/5 disabled:opacity-30 hover:bg-white/10 transition-colors border border-white/5"
+                                >
+                                    <ChevronLeft size={18} />
+                                </button>
+                                <div className="flex items-center gap-1">
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                        <button
+                                            key={page}
+                                            onClick={() => setCurrentPage(page)}
+                                            className={`w-10 h-10 rounded-xl font-black transition-all border ${currentPage === page
+                                                ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-110'
+                                                : 'bg-white/5 text-gray-500 border-white/5 hover:bg-white/10 hover:text-white'
+                                                }`}
+                                        >
+                                            {page}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    disabled={currentPage === totalPages}
+                                    className="p-2 rounded-xl bg-white/5 disabled:opacity-30 hover:bg-white/10 transition-colors border border-white/5"
+                                >
+                                    <ChevronRight size={18} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 

@@ -406,8 +406,8 @@ export const OrderHistory: React.FC = () => {
             </div>
 
             <div className="flex flex-col xl:flex-row gap-4 items-start relative">
-                {/* Orders Table */}
-                <div className="flex-1 min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-2xl">
+                {/* Desktop Table View */}
+                <div className="hidden lg:block flex-1 min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-2xl">
                     <div className="overflow-x-auto scrollbar-hide">
                         <style>{`
                             .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -468,6 +468,51 @@ export const OrderHistory: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                {/* Mobile Cards View */}
+                <div className="lg:hidden flex flex-col gap-3 w-full">
+                    {paginatedOrders.map(order => (
+                        <div
+                            key={order.id}
+                            onClick={() => setSelectedOrder(order)}
+                            className={`p-4 rounded-2xl border transition-all active:scale-[0.98] ${selectedOrder?.id === order.id
+                                    ? 'bg-primary/10 border-primary shadow-lg shadow-primary/5'
+                                    : 'bg-white/5 border-white/10'
+                                }`}
+                        >
+                            <div className="flex justify-between items-start mb-3">
+                                <div className="flex items-center gap-2">
+                                    <div className={`p-2 rounded-xl bg-white/5 ${selectedOrder?.id === order.id ? 'text-primary' : 'text-gray-500'}`}>
+                                        <span className="material-symbols-outlined text-sm">schedule</span>
+                                    </div>
+                                    <span className="text-xs font-black text-gray-400">
+                                        {new Date(order.created_at!).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                </div>
+                                <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${STATUS_COLORS[order.status] || ''}`}>
+                                    {order.status}
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-end">
+                                <div className="flex flex-col">
+                                    <span className="text-white font-black uppercase italic text-sm tracking-tight leading-none">{order.client_name}</span>
+                                    <span className="text-gray-600 text-[9px] font-black tracking-widest mt-1">ID: #{order.id.slice(0, 8).toUpperCase()}</span>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-primary font-black font-numbers text-xl uppercase italic">
+                                        R$ {Number(order.total).toFixed(2)}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    {filteredOrders.length === 0 && (
+                        <div className="p-12 text-center opacity-20">
+                            <span className="material-symbols-outlined text-5xl mb-2">shopping_bag</span>
+                            <p className="text-white font-black uppercase tracking-[0.2em] text-xs">Nenhum pedido</p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Sidebar Details */}

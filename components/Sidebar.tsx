@@ -108,8 +108,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return (
         <aside className="w-64 border-r border-white/5 p-4 flex-col gap-6 bg-background-dark hidden md:flex relative z-50">
             <div className="flex flex-col gap-1 px-3">
-                <h1 className="text-white text-base font-bold leading-normal">{title}</h1>
-                <p className="text-gray-500 text-xs font-normal">{subtitle}</p>
+                <h1 className="text-white text-base font-bold leading-normal text-shadow-sm">{title}</h1>
+                <p className="text-gray-500 text-[10px] uppercase font-black tracking-widest opacity-60">
+                    {isViewer ? 'Acesso Operador' : subtitle}
+                </p>
             </div>
             <div className="flex flex-col gap-2">
                 {visibleMenuItems.map((item) => (

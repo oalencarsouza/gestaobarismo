@@ -43,6 +43,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 localStorage.setItem('isLoggedIn', 'true');
                 localStorage.setItem('username', legacyUser.username);
                 localStorage.setItem('userRole', legacyUser.role || 'user');
+                if (legacyUser.client_id) localStorage.setItem('clientId', legacyUser.client_id);
                 onLogin();
                 setLoading(false);
                 return;
@@ -73,6 +74,15 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                         .single();
 
                     const role = profile?.role || data.user.user_metadata?.role || 'user';
+                    // Fetch client_id from auth_users table based on email (username)
+                    const { data: authUser } = await supabase
+                        .from('auth_users')
+                        .select('client_id')
+                        .eq('username', data.user.email)
+                        .single();
+                    if (authUser?.client_id) {
+                        localStorage.setItem('clientId', authUser.client_id);
+                    }
                     localStorage.setItem('isLoggedIn', 'true');
                     localStorage.setItem('username', data.user.email || '');
                     localStorage.setItem('userRole', role);

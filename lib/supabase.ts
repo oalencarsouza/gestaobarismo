@@ -7,4 +7,18 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+const customFetch = (url: RequestInfo | URL, options?: RequestInit) => {
+    const clientId = localStorage.getItem('clientId');
+    if (clientId) {
+        const headers = new Headers(options?.headers);
+        headers.set('x-client-id', clientId);
+        options = { ...options, headers };
+    }
+    return fetch(url, options);
+};
+
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
+    global: {
+        fetch: customFetch
+    }
+});

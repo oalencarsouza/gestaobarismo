@@ -24,12 +24,34 @@ export const OrderHistory: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 5;
+    const [topProduct, setTopProduct] = useState<{ name: string, quantity: number } | null>(null);
 
     // Estados de Navegação e Filtro
     const [baseDate, setBaseDate] = useState<Date>(new Date());
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]);
+
+    const highlights = useMemo(() => {
+        const productSales = new Map<string, number>();
+        const clientMap = new Map<string, number>();
+
+        orders.filter(o => o.status === 'Pago').forEach(o => {
+            clientMap.set(o.client_name, (clientMap.get(o.client_name) || 0) + Number(o.total || 0));
+        });
+
+        // We need order items to get top product, but here we only have orders in the main list.
+        // Actually, we load order_items only when selected.
+        // To make a real highlight we would need to fetch all items of the day.
+        // For now, let's use a placeholder or the same client logic.
+
+        const sortedClients = Array.from(clientMap.entries()).sort((a, b) => b[1] - a[1]);
+
+        return {
+            topClient: sortedClients.length > 0 ? { name: sortedClients[0][0] } : null,
+            topProduct: topProduct
+        };
+    }, [orders, topProduct]);
 
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
@@ -74,8 +96,29 @@ export const OrderHistory: React.FC = () => {
 
             if (data && data.length > 0) {
                 setSelectedOrder(data[0]);
+
+                // Fetch Top Product for Highlights
+                const { data: itemsData } = await supabase
+                    .from('order_items')
+                    .select('product_name, quantity')
+                    .gte('created_at', startOfDay.toISOString())
+                    .lte('created_at', endOfDay.toISOString());
+
+                if (itemsData) {
+                    const sales = new Map<string, number>();
+                    itemsData.forEach(item => {
+                        sales.set(item.product_name, (sales.get(item.product_name) || 0) + item.quantity);
+                    });
+                    const sorted = Array.from(sales.entries()).sort((a, b) => b[1] - a[1]);
+                    if (sorted.length > 0) {
+                        setTopProduct({ name: sorted[0][0], quantity: sorted[0][1] });
+                    } else {
+                        setTopProduct(null);
+                    }
+                }
             } else {
                 setSelectedOrder(null);
+                setTopProduct(null);
             }
         } catch (error) {
             console.error('Erro ao buscar histórico:', error);
@@ -261,6 +304,31 @@ export const OrderHistory: React.FC = () => {
                 </div>
             </div>
 
+            {/* Viewer Highlights */}
+            {isViewer && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between">
+                        <div>
+                            <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-1">Cliente que mais gastou (Dia)</p>
+                            <p className="text-white text-xl font-black uppercase italic">{highlights.topClient?.name || '---'}</p>
+                        </div>
+                        <span className="material-symbols-outlined text-primary text-3xl opacity-50">star</span>
+                    </div>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between">
+                        <div>
+                            <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-1">Item que mais saiu (Dia)</p>
+                            <div className="flex items-baseline gap-2">
+                                <p className="text-white text-xl font-black uppercase italic">{highlights.topProduct?.name || '---'}</p>
+                                {highlights.topProduct && (
+                                    <span className="text-primary font-black text-sm">{highlights.topProduct.quantity}x</span>
+                                )}
+                            </div>
+                        </div>
+                        <span className="material-symbols-outlined text-primary text-3xl opacity-50">local_fire_department</span>
+                    </div>
+                </div>
+            )}
+
             {/* Date Bar Row */}
             <div className="flex flex-col gap-6 bg-white/5 p-6 rounded-3xl border border-white/10 shadow-2xl backdrop-blur-md relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
@@ -269,16 +337,18 @@ export const OrderHistory: React.FC = () => {
 
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
                     <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => setIsCalendarOpen(true)}
-                            className="size-12 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
-                        >
-                            <span className="material-symbols-outlined">calendar_month</span>
-                        </button>
+                        {!isViewer && (
+                            <button
+                                onClick={() => setIsCalendarOpen(true)}
+                                className="size-12 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+                            >
+                                <span className="material-symbols-outlined">calendar_month</span>
+                            </button>
+                        )}
                         <div className="flex flex-col">
                             <span className="text-gray-400 font-black uppercase tracking-widest text-[10px]">Ponto de Partida:</span>
                             <span className="text-white font-black uppercase tracking-tighter text-sm italic">
-                                {baseDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
+                                {isViewer ? 'Período Fixo (4 dias)' : baseDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}
                             </span>
                         </div>
                     </div>
@@ -312,7 +382,7 @@ export const OrderHistory: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-3 flex-1 max-w-sm w-full">
-                        {isViewingPast && (
+                        {!isViewer && isViewingPast && (
                             <button
                                 onClick={handleResetToToday}
                                 className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all font-black text-[10px] uppercase tracking-widest"

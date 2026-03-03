@@ -53,10 +53,18 @@ const App: React.FC = () => {
         localStorage.removeItem('isLoggedIn');
         localStorage.removeItem('username');
         localStorage.removeItem('userRole');
+        localStorage.removeItem('clientId');
         sessionStorage.removeItem('welcomeDismissed');
         setIsLoggedIn(false);
         setShowWelcomeModal(false);
     };
+
+    useEffect(() => {
+        const userRole = localStorage.getItem('userRole');
+        if (userRole === 'viewer' && ['dashboard', 'reports', 'settings', 'stock'].includes(view)) {
+            setView('orders');
+        }
+    }, [view]);
 
     const handleWelcomeNewOrder = () => {
         setView('orders');

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Plus, Edit2, Trash2, X, Check, Search, Shield, User } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Check, Search, Shield, User, Database, AlertTriangle, Loader2 } from 'lucide-react';
 import { useNotification } from '../../contexts/NotificationContext';
 
 interface AuthUser {
@@ -24,6 +24,13 @@ export const Settings: React.FC = () => {
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [userToDelete, setUserToDelete] = useState<AuthUser | null>(null);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+    const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+    const [bulkDeleteTarget, setBulkDeleteTarget] = useState<string | null>(null);
+    const [bulkDeleteConfirmText, setBulkDeleteConfirmText] = useState('');
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+    const isMasterAdmin = localStorage.getItem('username') === 'danielalencarsouz@gmail.com';
 
     useEffect(() => {
         fetchUsers();
@@ -132,6 +139,62 @@ export const Settings: React.FC = () => {
         user.role.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const handleBulkDelete = async () => {
+        if (bulkDeleteConfirmText !== "Zerar este módulo agora") return;
+        setIsBulkDeleting(true);
+
+        try {
+            const clientId = localStorage.getItem('clientId');
+            if (!clientId) throw new Error("ID do cliente não encontrado.");
+
+            let error = null;
+
+            switch (bulkDeleteTarget) {
+                case 'orders':
+                    // We need to delete order_items first due to FK
+                    const { error: itemsErr } = await supabase.from('order_items').delete().eq('client_id', clientId);
+                    if (itemsErr) throw itemsErr;
+                    const { error: ordersErr } = await supabase.from('orders').delete().eq('client_id', clientId);
+                    error = ordersErr;
+                    break;
+                case 'stock':
+                    const { error: stockErr } = await supabase.from('stock').update({ quantity: 0 }).eq('client_id', clientId);
+                    error = stockErr;
+                    break;
+                case 'menu':
+                    const { error: menuItemsErr } = await supabase.from('menu_items').delete().eq('client_id', clientId);
+                    if (menuItemsErr) throw menuItemsErr;
+                    const { error: menusErr } = await supabase.from('menus').delete().eq('client_id', clientId);
+                    error = menusErr;
+                    break;
+                case 'categories':
+                    // This is dangerous as it deletes the hierarchy
+                    const { error: catItemsErr } = await supabase.from('menu_items').delete().eq('client_id', clientId);
+                    if (catItemsErr) throw catItemsErr;
+                    const { error: mErr } = await supabase.from('menus').delete().eq('client_id', clientId);
+                    if (mErr) throw mErr;
+                    const { error: sErr } = await supabase.from('stock').delete().eq('client_id', clientId);
+                    if (sErr) throw sErr;
+                    const { error: pErr } = await supabase.from('products').delete().eq('client_id', clientId);
+                    if (pErr) throw pErr;
+                    const { error: catErr } = await supabase.from('categories').delete().eq('client_id', clientId);
+                    error = catErr;
+                    break;
+            }
+
+            if (error) throw error;
+            showSuccess("Dados excluídos com sucesso!");
+            setIsBulkDeleteModalOpen(false);
+            setBulkDeleteTarget(null);
+            setBulkDeleteConfirmText('');
+        } catch (err) {
+            console.error("Erro na exclusão em massa:", err);
+            showError("Erro ao processar exclusão em massa.");
+        } finally {
+            setIsBulkDeleting(false);
+        }
+    };
+
     return (
         <main className="max-w-full overflow-x-hidden min-w-0 mx-auto w-full h-full flex flex-col p-4 md:p-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -139,13 +202,24 @@ export const Settings: React.FC = () => {
                     <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">Configurações de Acesso</h1>
                     <p className="text-zinc-400 mt-1">Gerencie as credenciais e níveis de acesso do sistema secundário.</p>
                 </div>
-                <button
-                    onClick={() => handleOpenModal()}
-                    className="bg-primary hover:bg-orange-600 text-white px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 whitespace-nowrap"
-                >
-                    <Plus size={20} />
-                    Nova Credencial
-                </button>
+                <div className="flex items-center gap-3">
+                    {isMasterAdmin && (
+                        <button
+                            onClick={() => setIsBulkDeleteModalOpen(true)}
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 whitespace-nowrap"
+                        >
+                            <Database size={20} />
+                            Gestão de Dados
+                        </button>
+                    )}
+                    <button
+                        onClick={() => handleOpenModal()}
+                        className="bg-primary hover:bg-orange-600 text-white px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 whitespace-nowrap"
+                    >
+                        <Plus size={20} />
+                        Nova Credencial
+                    </button>
+                </div>
             </div>
 
             <div className="bg-[#120f0e] border border-white/5 rounded-2xl flex flex-col flex-1 overflow-hidden shadow-2xl">
@@ -345,6 +419,121 @@ export const Settings: React.FC = () => {
                     </div>
                 </div>
             )}
+            {/* Modal de Gestão de Dados (Exclusão em Massa) */}
+            {isBulkDeleteModalOpen && isMasterAdmin && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-300">
+                    <div className="bg-[#120f0e] border border-red-500/30 rounded-3xl w-full max-w-2xl shadow-[0_0_50px_rgba(239,68,68,0.2)] flex flex-col max-h-[90vh] overflow-hidden animate-in scale-95 duration-200">
+                        <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-2xl font-black text-red-500 flex items-center gap-3 italic">
+                                    <Database size={28} />
+                                    EXCLUSÃO EM MASSA
+                                </h2>
+                                <p className="text-zinc-500 text-xs font-black uppercase tracking-widest mt-1 opacity-60">Bar Manager Pro // Clean Master</p>
+                            </div>
+                            <button onClick={() => { setIsBulkDeleteModalOpen(false); setBulkDeleteTarget(null); }} className="size-10 rounded-2xl bg-white/5 text-zinc-500 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="p-8 space-y-8 overflow-y-auto">
+                            {!bulkDeleteTarget ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    {[
+                                        { id: 'orders', label: 'Todos os Pedidos', icon: 'receipt_long', desc: 'Remove histórico e itens de pedidos' },
+                                        { id: 'stock', label: 'Esvaziar Estoque', icon: 'inventory_2', desc: 'Zera as quantidades de todos os itens' },
+                                        { id: 'menu', label: 'Limpar Cardápios', icon: 'restaurant_menu', desc: 'Remove cardápios e itens vinculados' },
+                                        { id: 'categories', label: 'Remover Categorias', icon: 'category', desc: 'Apaga todas as categorias e produtos' }
+                                    ].map(item => (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => setBulkDeleteTarget(item.id)}
+                                            className="flex flex-col items-start gap-4 p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-red-500/50 hover:bg-red-500/5 transition-all group text-left"
+                                        >
+                                            <div className="size-12 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-red-500/20 group-hover:text-red-500 transition-all">
+                                                <span className="material-symbols-outlined text-3xl">{item.icon}</span>
+                                            </div>
+                                            <div>
+                                                <h3 className="text-white font-black uppercase tracking-tighter italic text-lg">{item.label}</h3>
+                                                <p className="text-zinc-500 text-xs mt-1 leading-relaxed">{item.desc}</p>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                                    <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl">
+                                        <div className="flex items-center gap-3 text-red-500 mb-3">
+                                            <AlertTriangle size={24} />
+                                            <h3 className="font-black text-lg uppercase italic">AVISO CRÍTICO</h3>
+                                        </div>
+                                        <p className="text-red-200/80 text-sm leading-relaxed">
+                                            Você selecionou <strong className="text-white">"{bulkDeleteTarget === 'orders' ? 'PEDIDOS' : bulkDeleteTarget === 'stock' ? 'ESTOQUE' : bulkDeleteTarget === 'menu' ? 'CARDÁPIOS' : 'CATEGORIAS'}"</strong> para exclusão total. Esta ação é irreversível e afetará permanentemente todos os dados deste cliente.
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-4 p-8 bg-black/40 rounded-3xl border border-red-500/20 relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 p-8 opacity-[0.02] pointer-events-none transition-transform group-focus-within:scale-110">
+                                            <AlertTriangle size={120} />
+                                        </div>
+
+                                        <label className="block text-[11px] font-black text-white/40 uppercase tracking-[0.3em] mb-4 text-center">
+                                            Validação de Segurança
+                                        </label>
+
+                                        <div className="text-center space-y-2 mb-6">
+                                            <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">Digite a frase abaixo:</p>
+                                            <p className="text-white text-xl font-black italic uppercase tracking-tighter select-none">
+                                                "Zerar este módulo <span className="text-red-500 underline decoration-2 underline-offset-4">agora</span>"
+                                            </p>
+                                        </div>
+
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                value={bulkDeleteConfirmText}
+                                                onChange={(e) => setBulkDeleteConfirmText(e.target.value)}
+                                                className="w-full bg-white/[0.03] border-2 border-red-500/10 rounded-2xl px-6 py-5 text-white focus:border-red-500 focus:bg-red-500/5 focus:ring-4 focus:ring-red-500/10 outline-none transition-all font-black text-center text-sm uppercase tracking-[0.1em] placeholder:text-zinc-800"
+                                                placeholder="..."
+                                            />
+                                            {bulkDeleteConfirmText === "Zerar este módulo agora" && (
+                                                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase tracking-widest animate-in fade-in slide-in-from-top-1">
+                                                    Senha Validada
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="p-8 border-t border-white/5 bg-white/5 flex gap-3 justify-end">
+                            <button
+                                onClick={() => {
+                                    if (bulkDeleteTarget) setBulkDeleteTarget(null);
+                                    else setIsBulkDeleteModalOpen(false);
+                                    setBulkDeleteConfirmText('');
+                                }}
+                                className="px-6 py-4 rounded-xl text-zinc-500 font-black uppercase tracking-widest text-[10px] hover:text-white transition-all"
+                                disabled={isBulkDeleting}
+                            >
+                                {bulkDeleteTarget ? 'Voltar' : 'Fechar'}
+                            </button>
+                            {bulkDeleteTarget && (
+                                <button
+                                    onClick={handleBulkDelete}
+                                    disabled={bulkDeleteConfirmText !== "Zerar este módulo agora" || isBulkDeleting}
+                                    className="flex items-center gap-3 px-8 py-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-red-500/20 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                                >
+                                    {isBulkDeleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
+                                    CONFIRMAR EXCLUSÃO TOTAL
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 };
+

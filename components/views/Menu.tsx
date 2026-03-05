@@ -22,6 +22,15 @@ export const MenuView: React.FC = () => {
     const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [cardSlideIndex, setCardSlideIndex] = useState(0);
+
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
@@ -236,7 +245,7 @@ export const MenuView: React.FC = () => {
                     <div>
                         <div className="flex items-center gap-3">
                             <h2 className="text-white text-3xl font-black tracking-tight">
-                                {selectedMenu ? selectedMenu.name : 'Gestão de Cardápios'}
+                                {selectedMenu ? (isMobile ? TYPE_CONFIG[selectedMenu.type || 'tradicional'].label : selectedMenu.name) : 'Gestão de Cardápios'}
                             </h2>
                             {selectedMenu && getTypeBadge(selectedMenu)}
                         </div>
@@ -305,64 +314,96 @@ export const MenuView: React.FC = () => {
                 </div>
             ) : !selectedMenu ? (
                 /* Menu List View */
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredMenus.map(menu => (
-                        <div
-                            key={menu.id}
-                            onClick={() => handleMenuClick(menu)}
-                            className={`group p-6 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${isEditMode
-                                ? 'bg-white/5 border-primary/50 hover:bg-primary/5'
-                                : 'bg-white/5 border-white/10 hover:border-primary/50'
-                                }`}
-                        >
-                            {/* Icon Indicator: LayoutGrid (Normal) vs Trash2 (Edit Mode) */}
-                            <div className="absolute top-0 right-0 p-4 transition-all z-10">
-                                {isEditMode && !isViewer ? (
-                                    <button
-                                        onClick={(e) => handleDeleteMenu(menu, e)}
-                                        className="p-2 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-lg"
-                                        title="Excluir Cardápio"
-                                    >
-                                        <Trash2 size={20} />
-                                    </button>
-                                ) : (
-                                    <LayoutGrid className="text-primary opacity-20 group-hover:opacity-100 transition-opacity" size={24} />
-                                )}
-                            </div>
+                <div className="flex flex-col gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {(() => {
+                            const filtered = filteredMenus;
+                            const visible = isMobile
+                                ? filtered.slice(cardSlideIndex, cardSlideIndex + 2)
+                                : filtered;
 
-                            <div className="flex items-center gap-2 mb-2 pr-12">
-                                <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors truncate w-full">
-                                    {menu.name}
-                                </h3>
-                            </div>
+                            return visible.map(menu => (
+                                <div
+                                    key={menu.id}
+                                    onClick={() => handleMenuClick(menu)}
+                                    className={`group p-6 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${isEditMode
+                                        ? 'bg-white/5 border-primary/50 hover:bg-primary/5'
+                                        : 'bg-white/5 border-white/10 hover:border-primary/50'
+                                        }`}
+                                >
+                                    {/* ... icon indicator ... */}
+                                    <div className="absolute top-0 right-0 p-4 transition-all z-10">
+                                        {isEditMode && !isViewer ? (
+                                            <button
+                                                onClick={(e) => handleDeleteMenu(menu, e)}
+                                                className="p-2 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all shadow-lg"
+                                                title="Excluir Cardápio"
+                                            >
+                                                <Trash2 size={20} />
+                                            </button>
+                                        ) : (
+                                            <LayoutGrid className="text-primary opacity-20 group-hover:opacity-100 transition-opacity" size={24} />
+                                        )}
+                                    </div>
 
-                            <p className="text-gray-400 text-sm line-clamp-2 mb-3 h-10">
-                                {menu.description || 'Sem descrição.'}
-                            </p>
+                                    <div className="flex items-center gap-2 mb-2 pr-12">
+                                        <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors truncate w-full">
+                                            {menu.name}
+                                        </h3>
+                                    </div>
 
-                            <div className="mb-3">
-                                {getTypeBadge(menu)}
-                            </div>
+                                    <p className="text-gray-400 text-sm line-clamp-2 mb-3 h-10">
+                                        {menu.description || 'Sem descrição.'}
+                                    </p>
 
-                            <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
-                                <span className={menu.active ? 'text-green-500' : 'text-gray-500'}>
-                                    {menu.active ? 'Ativo' : 'Inativo'}
-                                </span>
-                                <span className="text-gray-500">
-                                    {new Date(menu.created_at || '').toLocaleDateString('pt-BR')}
-                                </span>
-                            </div>
+                                    <div className="mb-3">
+                                        {getTypeBadge(menu)}
+                                    </div>
 
-                            {/* Edit Mode Overlay Hint */}
-                            {isEditMode && !isViewer && (
-                                <div className="absolute inset-x-0 bottom-0 bg-primary/10 py-1 text-center text-xs font-bold text-primary border-t border-primary/20">
-                                    Clique para editar
+                                    <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
+                                        <span className={menu.active ? 'text-green-500' : 'text-gray-500'}>
+                                            {menu.active ? 'Ativo' : 'Inativo'}
+                                        </span>
+                                        <span className="text-gray-500">
+                                            {new Date(menu.created_at || '').toLocaleDateString('pt-BR')}
+                                        </span>
+                                    </div>
+
+                                    {/* Edit Mode Overlay Hint */}
+                                    {isEditMode && !isViewer && (
+                                        <div className="absolute inset-x-0 bottom-0 bg-primary/10 py-1 text-center text-xs font-bold text-primary border-t border-primary/20">
+                                            Clique para editar
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                            ));
+                        })()}
+                    </div>
+
+                    {isMobile && filteredMenus.length > 2 && (
+                        <div className="flex items-center justify-center gap-4 mt-2">
+                            <button
+                                onClick={() => setCardSlideIndex(prev => Math.max(0, prev - 1))}
+                                disabled={cardSlideIndex === 0}
+                                className="size-12 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 transition-all shadow-xl"
+                            >
+                                <ChevronLeft size={24} />
+                            </button>
+                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                {Math.floor(cardSlideIndex / 2) + 1} / {Math.ceil(filteredMenus.length / 2)}
+                            </span>
+                            <button
+                                onClick={() => setCardSlideIndex(prev => Math.min(filteredMenus.length - 2, prev + 1))}
+                                disabled={cardSlideIndex >= filteredMenus.length - 2}
+                                className="size-12 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 transition-all shadow-xl"
+                            >
+                                <ChevronRight size={24} />
+                            </button>
                         </div>
-                    ))}
+                    )}
+
                     {filteredMenus.length === 0 && (
-                        <div className="col-span-full py-20 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
+                        <div className="py-20 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
                             <p className="text-gray-400">Nenhum cardápio encontrado.</p>
                         </div>
                     )}

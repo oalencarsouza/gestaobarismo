@@ -5,7 +5,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { StatCard } from '../StatCard';
 import { ConfirmModal } from '../ConfirmModal';
 import type { Order, OrderItem } from '../../types';
-import { getBusinessDayRange } from '../../lib/data-utils';
+import { getBusinessDayRange, isWithinOperatingHours } from '../../lib/data-utils';
 
 const STATUS_COLORS: Record<string, string> = {
     'Aberto': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
@@ -42,6 +42,18 @@ export const OrderHistory: React.FC = () => {
     const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]);
     const [observation, setObservation] = useState('');
     const [isSavingObservation, setIsSavingObservation] = useState(false);
+    const [businessHours, setBusinessHours] = useState<any[]>([]);
+
+    useEffect(() => {
+        const savedHours = localStorage.getItem('businessHours');
+        if (savedHours) {
+            try {
+                setBusinessHours(JSON.parse(savedHours));
+            } catch (e) {
+                console.error("Failed to load hours", e);
+            }
+        }
+    }, []);
 
     const highlights = useMemo(() => {
         const productSales = new Map<string, number>();
@@ -462,6 +474,7 @@ export const OrderHistory: React.FC = () => {
                                     <th className="px-2 py-4">Cliente</th>
                                     <th className="px-2 py-4">Valor Total</th>
                                     <th className="px-2 py-4">Status</th>
+                                    <th className="px-2 py-4 text-center">Obs</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/10">
@@ -494,6 +507,16 @@ export const OrderHistory: React.FC = () => {
                                             <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${STATUS_COLORS[order.status]}`}>
                                                 {order.status}
                                             </span>
+                                        </td>
+                                        <td className="px-2 py-4 text-center">
+                                            {!isWithinOperatingHours(order.created_at!, businessHours) && (
+                                                <div className="group relative inline-block">
+                                                    <span className="material-symbols-outlined text-amber-500 text-lg animate-pulse">warning</span>
+                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block w-32 p-2 bg-background-dark border border-amber-500/30 rounded-lg text-[8px] font-black text-amber-500 uppercase tracking-widest text-center shadow-2xl z-50">
+                                                        Fora do Horário
+                                                    </div>
+                                                </div>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -536,6 +559,12 @@ export const OrderHistory: React.FC = () => {
                                     {order.status}
                                 </span>
                             </div>
+                            {!isWithinOperatingHours(order.created_at!, businessHours) && (
+                                <div className="mb-3 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-amber-500 text-sm">warning</span>
+                                    <span className="text-amber-500 text-[8px] font-black uppercase tracking-widest">Pedido fora do horário de funcionamento</span>
+                                </div>
+                            )}
                             <div className="flex justify-between items-end">
                                 <div className="flex flex-col">
                                     <span className="text-white font-black uppercase italic text-sm tracking-tight leading-none">{order.client_name}</span>

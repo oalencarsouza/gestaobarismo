@@ -53,3 +53,43 @@ export const getBusinessDayRange = (date: Date) => {
 
     return { start, end };
 };
+
+/**
+ * Verifica se uma data/hora está dentro do horário de funcionamento configurado.
+ */
+export const isWithinOperatingHours = (date: Date | string, businessHours: any[]): boolean => {
+    const d = new Date(date);
+    const hour = d.getHours();
+    const minute = d.getMinutes();
+    const currentTimeMinutes = hour * 60 + minute;
+
+    // Determinar qual o dia da semana "de negócio"
+    const refDate = new Date(d);
+    if (hour < 5) refDate.setDate(refDate.getDate() - 1);
+
+    const dayName = refDate.toLocaleDateString('pt-BR', { weekday: 'long' });
+    const capitalizedDay = dayName.charAt(0).toUpperCase() + dayName.slice(1).split('-')[0];
+
+    // Buscar a config para esse dia
+    const config = businessHours.find(h => h.day.startsWith(capitalizedDay));
+    if (!config || !config.enabled) return false;
+
+    const [openH, openM] = config.open.split(':').map(Number);
+    const [closeH, closeM] = config.close.split(':').map(Number);
+
+    const openMinutes = openH * 60 + openM;
+    let closeMinutes = closeH * 60 + closeM;
+
+    // Se o fechamento for menor que a abertura (ex: fecha 01:00 am), soma 24h
+    if (closeMinutes <= openMinutes) {
+        closeMinutes += 24 * 60;
+    }
+
+    // Se a hora atual for madrugada e pertence ao dia anterior, soma 24h para comparar
+    let adjustedCurrentMinutes = currentTimeMinutes;
+    if (hour < 5) {
+        adjustedCurrentMinutes += 24 * 60;
+    }
+
+    return adjustedCurrentMinutes >= openMinutes && adjustedCurrentMinutes <= closeMinutes;
+};

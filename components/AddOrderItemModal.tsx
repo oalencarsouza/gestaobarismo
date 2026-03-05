@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useNotification } from '../contexts/NotificationContext';
-import { X, ChevronLeft, Loader2, Plus, Minus, ShoppingCart, Coffee, Percent, Copy, Sparkles, ArrowRight, Search, Filter } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Loader2, Plus, Minus, ShoppingCart, Coffee, Percent, Copy, Sparkles, ArrowRight, Search, Filter } from 'lucide-react';
 import type { Menu, MenuItem, MenuType, CartItem, Category } from '../types';
 
 const TYPE_CONFIG: Record<MenuType, { label: string; color: string; icon: React.ReactNode; badge?: string; badgeColor?: string }> = {
@@ -35,6 +35,16 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
     const [isGlobalSearch, setIsGlobalSearch] = useState(false);
     const [globalResults, setGlobalResults] = useState<any[]>([]);
+    const [filterSlideIndex, setFilterSlideIndex] = useState(0);
+    const [menuSlideIndex, setMenuSlideIndex] = useState(0);
+
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 640);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         if (isOpen) {
@@ -97,6 +107,7 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
         setSearchTerm('');
         setSelectedCategoryId(null);
         setIsGlobalSearch(false);
+        setFilterSlideIndex(0); // Reset filter slide
         setLoading(true);
         try {
             const { data, error } = await supabase
@@ -329,8 +340,13 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
         return (
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${config.color}`}>
                 {config.icon}
-                {config.label}
-                {menu.type === 'desconto' && menu.discount_percent ? ` ${menu.discount_percent}%` : ''}
+                <span className="sm:hidden font-black">
+                    {menu.type === 'quantidade' ? '1 = 2 !' : menu.type === 'desconto' ? `${menu.discount_percent}%` : config.label}
+                </span>
+                <span className="hidden sm:inline">
+                    {config.label}
+                    {menu.type === 'desconto' && menu.discount_percent ? ` ${menu.discount_percent}%` : ''}
+                </span>
             </span>
         );
     };
@@ -350,7 +366,9 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
                             </button>
                         )}
                         <h3 className="text-xl font-bold text-white">
-                            {selectedMenu ? selectedMenu.name : 'Selecione o Cardápio'}
+                            {selectedMenu
+                                ? (isMobile ? TYPE_CONFIG[selectedMenu.type || 'tradicional'].label : selectedMenu.name)
+                                : 'Selecione o Cardápio'}
                         </h3>
                         {selectedMenu && getTypeBadge(selectedMenu)}
                     </div>
@@ -381,27 +399,52 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
 
                         {/* Category Filter Chips */}
                         {(selectedMenu || isGlobalSearch) && categories.length > 0 && (
-                            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                                <Filter size={14} className="text-gray-500 shrink-0" />
+                            <div className="flex items-center gap-2">
                                 <button
-                                    onClick={() => setSelectedCategoryId(null)}
-                                    className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${!selectedCategoryId
-                                        ? 'bg-primary border-primary text-white'
-                                        : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'}`}
+                                    onClick={() => setFilterSlideIndex(prev => Math.max(0, prev - 1))}
+                                    disabled={filterSlideIndex === 0}
+                                    className="sm:hidden size-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 transition-all shrink-0"
                                 >
-                                    todos
+                                    <ChevronLeft size={18} />
                                 </button>
-                                {categories.map(cat => (
-                                    <button
-                                        key={cat.id}
-                                        onClick={() => setSelectedCategoryId(cat.id === selectedCategoryId ? null : cat.id)}
-                                        className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${cat.id === selectedCategoryId
-                                            ? 'bg-primary border-primary text-white'
-                                            : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'}`}
-                                    >
-                                        {cat.name.toLowerCase()}
-                                    </button>
-                                ))}
+
+                                <div className="flex-1 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                                    <Filter size={14} className="text-gray-500 shrink-0" />
+                                    {(() => {
+                                        const allOptions = [
+                                            { id: null, name: 'todos' },
+                                            ...categories.map(c => ({ id: c.id, name: c.name.toLowerCase() }))
+                                        ];
+
+                                        const visibleOptions = isMobile
+                                            ? allOptions.slice(filterSlideIndex, filterSlideIndex + 2)
+                                            : allOptions;
+
+                                        return visibleOptions.map(opt => (
+                                            <button
+                                                key={opt.id ?? 'all'}
+                                                onClick={() => setSelectedCategoryId(opt.id)}
+                                                className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border flex-1 sm:flex-none text-center ${(opt.id === selectedCategoryId || (!opt.id && !selectedCategoryId))
+                                                    ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20'
+                                                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
+                                                    }`}
+                                            >
+                                                {opt.name}
+                                            </button>
+                                        ));
+                                    })()}
+                                </div>
+
+                                <button
+                                    onClick={() => {
+                                        const count = 1 + categories.length;
+                                        setFilterSlideIndex(prev => Math.min(count - 2, prev + 1));
+                                    }}
+                                    disabled={filterSlideIndex >= (1 + categories.length) - 2}
+                                    className="sm:hidden size-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 transition-all shrink-0"
+                                >
+                                    <ChevronRight size={18} />
+                                </button>
                             </div>
                         )}
                     </div>
@@ -415,23 +458,54 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
                         </div>
                     ) : !selectedMenu && !isGlobalSearch ? (
                         /* Step 1: Menu Selection */
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {menus.map(menu => (
-                                <button
-                                    key={menu.id}
-                                    onClick={() => handleSelectMenu(menu)}
-                                    className="group p-5 rounded-xl border border-white/10 bg-white/5 hover:border-primary/50 transition-all text-left flex flex-col gap-3"
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <h4 className="text-white font-bold text-lg group-hover:text-primary transition-colors truncate">{menu.name}</h4>
+                        <div className="flex flex-col gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {(() => {
+                                    const visibleMenus = isMobile
+                                        ? menus.slice(menuSlideIndex, menuSlideIndex + 2)
+                                        : menus;
+
+                                    return visibleMenus.map(menu => (
+                                        <button
+                                            key={menu.id}
+                                            onClick={() => handleSelectMenu(menu)}
+                                            className="group p-5 rounded-xl border border-white/10 bg-white/5 hover:border-primary/50 transition-all text-left flex flex-col gap-3"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <h4 className="text-white font-bold text-lg group-hover:text-primary transition-colors truncate">{menu.name}</h4>
+                                            </div>
+                                            <p className="text-gray-400 text-sm line-clamp-2">{menu.description || 'Sem descrição'}</p>
+                                            {getTypeBadge(menu)}
+                                        </button>
+                                    ));
+                                })()}
+                                {menus.length === 0 && (
+                                    <div className="col-span-full py-20 text-center text-gray-500">
+                                        Nenhum cardápio ativo encontrado.
                                     </div>
-                                    <p className="text-gray-400 text-sm line-clamp-2">{menu.description || 'Sem descrição'}</p>
-                                    {getTypeBadge(menu)}
-                                </button>
-                            ))}
-                            {menus.length === 0 && (
-                                <div className="col-span-full py-20 text-center text-gray-500">
-                                    Nenhum cardápio ativo encontrado.
+                                )}
+                            </div>
+
+                            {/* Mobile Navigation for Menus */}
+                            {isMobile && menus.length > 2 && (
+                                <div className="flex items-center justify-center gap-4 mt-2">
+                                    <button
+                                        onClick={() => setMenuSlideIndex(prev => Math.max(0, prev - 1))}
+                                        disabled={menuSlideIndex === 0}
+                                        className="size-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 transition-all"
+                                    >
+                                        <ChevronLeft size={20} />
+                                    </button>
+                                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                                        {Math.floor(menuSlideIndex / 2) + 1} / {Math.ceil(menus.length / 2)}
+                                    </span>
+                                    <button
+                                        onClick={() => setMenuSlideIndex(prev => Math.min(menus.length - 2, prev + 1))}
+                                        disabled={menuSlideIndex >= menus.length - 2}
+                                        className="size-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 transition-all"
+                                    >
+                                        <ChevronRight size={20} />
+                                    </button>
                                 </div>
                             )}
                         </div>

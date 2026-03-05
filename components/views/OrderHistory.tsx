@@ -407,7 +407,7 @@ export const OrderHistory: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-2 w-full sm:w-auto">
+                    <div className="grid grid-cols-2 lg:grid-cols-2 gap-2 w-full sm:w-auto">
                         {historicalDays.map((date, idx) => {
                             const isSelected = selectedDate.toDateString() === date.toDateString();
                             const isToday = date.toDateString() === new Date().toDateString();

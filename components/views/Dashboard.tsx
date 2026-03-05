@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StatCard } from '../StatCard';
 import { supabase } from '../../lib/supabase';
+import { getBusinessDayRange } from '../../lib/data-utils';
 
 interface HighlightData {
     topProduct: { name: string; quantity: number } | null;
@@ -37,19 +38,41 @@ export const Dashboard: React.FC = () => {
             let startDate = new Date();
             let previousStartDate = new Date();
 
+            const now = new Date();
+            const todayRef = new Date(now);
+            if (todayRef.getHours() < 5) todayRef.setDate(todayRef.getDate() - 1);
+
             if (filter === 'today') {
-                startDate.setHours(0, 0, 0, 0);
-                previousStartDate.setDate(previousStartDate.getDate() - 1);
-                previousStartDate.setHours(0, 0, 0, 0);
+                const { start, end } = getBusinessDayRange(todayRef);
+                startDate = start;
+                // Para comparação, pegar o dia anterior
+                const yesterdayRef = new Date(todayRef);
+                yesterdayRef.setDate(yesterdayRef.getDate() - 1);
+                const { start: pStart } = getBusinessDayRange(yesterdayRef);
+                previousStartDate = pStart;
             } else if (filter === '7days') {
-                startDate.setDate(startDate.getDate() - 7);
-                previousStartDate.setDate(previousStartDate.getDate() - 14);
+                const date = new Date(todayRef);
+                date.setDate(date.getDate() - 7);
+                const { start } = getBusinessDayRange(date);
+                startDate = start;
+                const pDate = new Date(date);
+                pDate.setDate(pDate.getDate() - 7);
+                const { start: pStart } = getBusinessDayRange(pDate);
+                previousStartDate = pStart;
             } else if (filter === '30days') {
-                startDate.setDate(startDate.getDate() - 30);
-                previousStartDate.setDate(previousStartDate.getDate() - 60);
+                const date = new Date(todayRef);
+                date.setDate(date.getDate() - 30);
+                const { start } = getBusinessDayRange(date);
+                startDate = start;
+                const pDate = new Date(date);
+                pDate.setDate(pDate.getDate() - 30);
+                const { start: pStart } = getBusinessDayRange(pDate);
+                previousStartDate = pStart;
             } else if (filter === 'month') {
-                startDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-                previousStartDate = new Date(startDate.getFullYear(), startDate.getMonth() - 1, 1);
+                startDate = new Date(todayRef.getFullYear(), todayRef.getMonth(), 1);
+                startDate.setHours(5, 0, 0, 0);
+                previousStartDate = new Date(todayRef.getFullYear(), todayRef.getMonth() - 1, 1);
+                previousStartDate.setHours(5, 0, 0, 0);
             }
 
             const isoStartDate = startDate.toISOString();

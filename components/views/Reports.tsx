@@ -4,6 +4,7 @@ import { StatCard } from '../StatCard';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { useNotification } from '../../contexts/NotificationContext';
+import { getBusinessDate, getBusinessWeekday, getBusinessDayRange } from '../../lib/data-utils';
 
 interface OrderItemData {
     product_name: string;
@@ -73,24 +74,35 @@ export const Reports: React.FC = () => {
             let end: string = new Date().toISOString();
 
             const now = new Date();
+            const todayRef = new Date(now);
+            if (todayRef.getHours() < 5) todayRef.setDate(todayRef.getDate() - 1);
+
             if (activePeriod === 'hoje') {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                start = today.toISOString();
+                const { start: s, end: e } = getBusinessDayRange(todayRef);
+                start = s.toISOString();
+                end = e.toISOString();
             } else if (activePeriod === '7d') {
-                const date = new Date();
+                const date = new Date(todayRef);
                 date.setDate(date.getDate() - 7);
-                start = date.toISOString();
+                const { start: s } = getBusinessDayRange(date);
+                start = s.toISOString();
             } else if (activePeriod === '30d') {
-                const date = new Date();
+                const date = new Date(todayRef);
                 date.setDate(date.getDate() - 30);
-                start = date.toISOString();
+                const { start: s } = getBusinessDayRange(date);
+                start = s.toISOString();
             } else if (activePeriod === 'mes') {
-                const date = new Date(now.getFullYear(), now.getMonth(), 1);
-                start = date.toISOString();
+                const date = new Date(todayRef.getFullYear(), todayRef.getMonth(), 1);
+                const { start: s } = getBusinessDayRange(date);
+                start = s.toISOString();
             } else {
-                start = customRange.start ? new Date(customRange.start).toISOString() : new Date(0).toISOString();
-                end = customRange.end ? new Date(customRange.end + 'T23:59:59').toISOString() : new Date().toISOString();
+                start = customRange.start ? new Date(customRange.start + 'T05:00:00').toISOString() : new Date(0).toISOString();
+                end = customRange.end ? new Date(customRange.end).toISOString() : new Date().toISOString();
+                if (customRange.end) {
+                    const endDate = new Date(customRange.end);
+                    const { end: e } = getBusinessDayRange(endDate);
+                    end = e.toISOString();
+                }
             }
 
             const { data: ordersData, error: ordersError } = await supabase
@@ -125,9 +137,9 @@ export const Reports: React.FC = () => {
             const dailyMap = new Map<string, { count: number, total: number, weekday: string, rawDate: Date }>();
 
             fetchedOrders.forEach(order => {
-                const dateObj = new Date(order.created_at);
-                const dateKey = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                const weekday = dateObj.toLocaleDateString('pt-BR', { weekday: 'long' });
+                const dateObj = new Date(order.created_at!);
+                const dateKey = getBusinessDate(dateObj);
+                const weekday = getBusinessWeekday(dateObj);
 
                 const current = dailyMap.get(dateKey) || { count: 0, total: 0, weekday, rawDate: dateObj };
                 dailyMap.set(dateKey, {

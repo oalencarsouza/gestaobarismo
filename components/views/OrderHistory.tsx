@@ -5,6 +5,7 @@ import { useNotification } from '../../contexts/NotificationContext';
 import { StatCard } from '../StatCard';
 import { ConfirmModal } from '../ConfirmModal';
 import type { Order, OrderItem } from '../../types';
+import { getBusinessDayRange } from '../../lib/data-utils';
 
 const STATUS_COLORS: Record<string, string> = {
     'Aberto': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
@@ -27,8 +28,16 @@ export const OrderHistory: React.FC = () => {
     const [topProduct, setTopProduct] = useState<{ name: string, quantity: number } | null>(null);
 
     // Estados de Navegação e Filtro
-    const [baseDate, setBaseDate] = useState<Date>(new Date());
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [baseDate, setBaseDate] = useState<Date>(() => {
+        const now = new Date();
+        if (now.getHours() < 5) now.setDate(now.getDate() - 1);
+        return now;
+    });
+    const [selectedDate, setSelectedDate] = useState<Date>(() => {
+        const now = new Date();
+        if (now.getHours() < 5) now.setDate(now.getDate() - 1);
+        return now;
+    });
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]);
     const [observation, setObservation] = useState('');
@@ -81,10 +90,7 @@ export const OrderHistory: React.FC = () => {
     const fetchOrders = async (date: Date) => {
         setLoading(true);
         try {
-            const startOfDay = new Date(date);
-            startOfDay.setHours(0, 0, 0, 0);
-            const endOfDay = new Date(date);
-            endOfDay.setHours(23, 59, 59, 999);
+            const { start: startOfDay, end: endOfDay } = getBusinessDayRange(date);
 
             const { data, error } = await supabase
                 .from('orders')
@@ -240,6 +246,7 @@ export const OrderHistory: React.FC = () => {
 
     const handleResetToToday = () => {
         const today = new Date();
+        if (today.getHours() < 5) today.setDate(today.getDate() - 1);
         setBaseDate(today);
         setSelectedDate(today);
     };

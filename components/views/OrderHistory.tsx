@@ -31,6 +31,8 @@ export const OrderHistory: React.FC = () => {
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     const [dateInput, setDateInput] = useState(new Date().toISOString().split('T')[0]);
+    const [observation, setObservation] = useState('');
+    const [isSavingObservation, setIsSavingObservation] = useState(false);
 
     const highlights = useMemo(() => {
         const productSales = new Map<string, number>();
@@ -139,9 +141,31 @@ export const OrderHistory: React.FC = () => {
             if (error) throw error;
             setOrderItems(data || []);
         } catch (error) {
-            console.error('Erro ao buscar itens do pedido:', error);
+            console.error('Erro ao buscar itens:', error);
         } finally {
             setItemsLoading(false);
+        }
+    };
+
+    const handleSaveObservation = async () => {
+        if (!selectedOrder) return;
+        setIsSavingObservation(true);
+        try {
+            const { error } = await supabase
+                .from('orders')
+                .update({ observation, updated_at: new Date().toISOString() })
+                .eq('id', selectedOrder.id);
+
+            if (error) throw error;
+
+            setOrders(prev => prev.map(o => o.id === selectedOrder.id ? { ...o, observation } : o));
+            setSelectedOrder(prev => prev ? { ...prev, observation } : null);
+            showSuccess('Comentário salvo com sucesso!');
+        } catch (error) {
+            console.error('Erro ao salvar comentário:', error);
+            showError('Erro ao salvar comentário.');
+        } finally {
+            setIsSavingObservation(false);
         }
     };
 
@@ -232,8 +256,10 @@ export const OrderHistory: React.FC = () => {
     useEffect(() => {
         if (selectedOrder) {
             fetchOrderItems(selectedOrder.id);
+            setObservation(selectedOrder.observation || '');
         } else {
             setOrderItems([]);
+            setObservation('');
         }
     }, [selectedOrder?.id]);
 
@@ -286,13 +312,13 @@ export const OrderHistory: React.FC = () => {
                             : 'Detalhamento dos últimos 4 dias'}
                     </p>
                 </div>
-                <div className="flex gap-4">
-                    <StatCard
-                        icon="receipt_long"
-                        label="PEDIDOS"
-                        value={orders.length}
-                    />
-                    {!isViewer && (
+                {!isViewer && (
+                    <div className="flex gap-4">
+                        <StatCard
+                            icon="receipt_long"
+                            label="PEDIDOS"
+                            value={orders.length}
+                        />
                         <StatCard
                             icon="payments"
                             label="FATURAMENTO"
@@ -300,47 +326,56 @@ export const OrderHistory: React.FC = () => {
                             iconColor="text-green-500"
                             iconBgColor="bg-green-500/10"
                         />
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
 
             {/* Viewer Highlights */}
             {isViewer && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-1">Cliente que mais gastou (Dia)</p>
-                            <p className="text-white text-xl font-black uppercase italic">{highlights.topClient?.name || '---'}</p>
+                <div className="flex flex-col gap-4">
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-8 flex items-center gap-6 shadow-2xl backdrop-blur-md">
+                        <div className="size-20 rounded-2xl bg-primary/10 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-primary text-5xl">receipt_long</span>
                         </div>
-                        <span className="material-symbols-outlined text-primary text-3xl opacity-50">star</span>
+                        <div>
+                            <p className="text-gray-500 text-xs font-black uppercase tracking-widest mb-1">Pedidos</p>
+                            <p className="text-white text-7xl font-black font-numbers leading-none">{orders.length}</p>
+                        </div>
                     </div>
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between">
-                        <div>
-                            <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-1">Item que mais saiu (Dia)</p>
-                            <div className="flex items-baseline gap-2">
-                                <p className="text-white text-xl font-black uppercase italic">{highlights.topProduct?.name || '---'}</p>
-                                {highlights.topProduct && (
-                                    <span className="text-primary font-black text-sm">{highlights.topProduct.quantity}x</span>
-                                )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between">
+                            <div>
+                                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-1">Cliente que mais gastou (Dia)</p>
+                                <p className="text-white text-xl font-black uppercase italic">{highlights.topClient?.name || '---'}</p>
                             </div>
+                            <span className="material-symbols-outlined text-primary text-3xl opacity-50">star</span>
                         </div>
-                        <span className="material-symbols-outlined text-primary text-3xl opacity-50">local_fire_department</span>
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 flex items-center justify-between">
+                            <div>
+                                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-1">Item que mais saiu (Dia)</p>
+                                <div className="flex items-baseline gap-2">
+                                    <p className="text-white text-xl font-black uppercase italic">{highlights.topProduct?.name || '---'}</p>
+                                    {highlights.topProduct && (
+                                        <span className="text-primary font-black text-sm">{highlights.topProduct.quantity}x</span>
+                                    )}
+                                </div>
+                            </div>
+                            <span className="material-symbols-outlined text-primary text-3xl opacity-50">local_fire_department</span>
+                        </div>
                     </div>
                 </div>
             )}
 
             {/* Date Bar Row */}
             <div className="flex flex-col gap-6 bg-white/5 p-6 rounded-3xl border border-white/10 shadow-2xl backdrop-blur-md relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
-                    <span className="material-symbols-outlined text-9xl">analytics</span>
-                </div>
 
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
                     <div className="flex items-center gap-4">
                         {!isViewer && (
                             <button
                                 onClick={() => setIsCalendarOpen(true)}
-                                className="size-12 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+                                className="size-12 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 flex items-center justify-center transition-all"
                             >
                                 <span className="material-symbols-outlined">calendar_month</span>
                             </button>
@@ -353,7 +388,7 @@ export const OrderHistory: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap justify-center gap-2">
+                    <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-2 w-full sm:w-auto">
                         {historicalDays.map((date, idx) => {
                             const isSelected = selectedDate.toDateString() === date.toDateString();
                             const isToday = date.toDateString() === new Date().toDateString();
@@ -364,8 +399,8 @@ export const OrderHistory: React.FC = () => {
                                 <button
                                     key={idx}
                                     onClick={() => setSelectedDate(date)}
-                                    className={`px-4 py-2.5 rounded-2xl font-black transition-all flex flex-col items-center gap-0.5 min-w-[100px] border relative ${isSelected
-                                        ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-105 z-10'
+                                    className={`px-4 py-2.5 rounded-2xl font-black transition-all flex flex-col items-center gap-0.5 min-w-[100px] w-full sm:w-auto border relative ${isSelected
+                                        ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20 z-10'
                                         : 'bg-white/5 border-white/10 text-gray-500 hover:bg-white/10 hover:text-white hover:border-white/20'
                                         }`}
                                 >
@@ -477,8 +512,8 @@ export const OrderHistory: React.FC = () => {
                             key={order.id}
                             onClick={() => setSelectedOrder(order)}
                             className={`p-4 rounded-2xl border transition-all active:scale-[0.98] ${selectedOrder?.id === order.id
-                                    ? 'bg-primary/10 border-primary shadow-lg shadow-primary/5'
-                                    : 'bg-white/5 border-white/10'
+                                ? 'bg-primary/10 border-primary shadow-lg shadow-primary/5'
+                                : 'bg-white/5 border-white/10'
                                 }`}
                         >
                             <div className="flex justify-between items-start mb-3">
@@ -581,33 +616,45 @@ export const OrderHistory: React.FC = () => {
                             </div>
 
                             {!isViewer && (
-                                <div className="grid grid-cols-2 gap-4">
-                                    <button
-                                        onClick={() => selectedOrder.status === 'Aberto' && handleFinalizeOrder(selectedOrder)}
-                                        className={`col-span-2 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all active:scale-95 group ${selectedOrder.status === 'Pago'
-                                            ? 'bg-green-500/10 text-green-500 border border-green-500/20 cursor-default'
-                                            : selectedOrder.status === 'Cancelado'
-                                                ? 'bg-red-500/10 text-red-500 border border-red-500/20 cursor-default'
-                                                : 'bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20'
-                                            }`}
-                                    >
-                                        {selectedOrder.status === 'Pago' ? (
-                                            <>
-                                                <span className="material-symbols-outlined text-lg">check_circle</span>
-                                                Finalizado
-                                            </>
-                                        ) : selectedOrder.status === 'Cancelado' ? (
-                                            <>
-                                                <span className="material-symbols-outlined text-lg">cancel</span>
-                                                Cancelado
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span className="material-symbols-outlined text-lg">payments</span>
-                                                Finalizar
-                                            </>
-                                        )}
-                                    </button>
+                                <div className="flex flex-col gap-4">
+                                    {(selectedOrder.status === 'Aberto' || selectedOrder.status === 'Cancelado') ? (
+                                        <div className="flex flex-col gap-3">
+                                            <div className="flex items-center gap-2 px-2">
+                                                <span className="material-symbols-outlined text-primary text-sm">comment</span>
+                                                <span className="text-white text-xs font-black uppercase tracking-[0.2em]">Comentário / Motivo</span>
+                                            </div>
+                                            <textarea
+                                                value={observation}
+                                                onChange={(e) => setObservation(e.target.value)}
+                                                placeholder="Digite o motivo ou observação..."
+                                                className="w-full h-24 bg-white/5 border border-white/10 rounded-xl p-3 text-white text-xs outline-none focus:border-primary/50 transition-colors resize-none"
+                                            />
+                                            <button
+                                                onClick={handleSaveObservation}
+                                                disabled={isSavingObservation}
+                                                className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 disabled:opacity-50"
+                                            >
+                                                {isSavingObservation ? (
+                                                    <span className="material-symbols-outlined animate-spin text-sm">refresh</span>
+                                                ) : (
+                                                    <span className="material-symbols-outlined text-sm">save</span>
+                                                )}
+                                                Salvar Comentário
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="p-4 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center gap-3">
+                                            <span className="material-symbols-outlined text-green-500 text-lg">check_circle</span>
+                                            <span className="text-green-500 font-black uppercase tracking-widest text-[10px]">Pedido Pago</span>
+                                        </div>
+                                    )}
+
+                                    {selectedOrder.observation && selectedOrder.status === 'Pago' && (
+                                        <div className="flex flex-col gap-2 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                                            <span className="text-gray-500 text-[9px] font-black uppercase tracking-widest">Observação Final</span>
+                                            <p className="text-gray-400 text-xs italic">"{selectedOrder.observation}"</p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

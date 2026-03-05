@@ -307,7 +307,7 @@ export const Reports: React.FC = () => {
                         <button
                             key={p}
                             onClick={() => setActivePeriod(p)}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activePeriod === p
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${p !== 'hoje' ? 'hidden md:inline-block' : ''} ${activePeriod === p
                                 ? 'bg-primary text-white shadow-lg shadow-primary/20'
                                 : 'text-gray-500 hover:text-white hover:bg-white/5'
                                 }`}

@@ -21,6 +21,7 @@ export const Stock: React.FC = () => {
     const [selectedCategory, setSelectedCategory] = useState('Todos');
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState<StockFilterStatus>('all');
+    const [filterSlideIndex, setFilterSlideIndex] = useState(0);
 
     // UI States
     const [isIdLoading, setIsIdLoading] = useState<string | null>(null);
@@ -29,7 +30,16 @@ export const Stock: React.FC = () => {
 
     // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 10;
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+
+    useEffect(() => {
+        const updateItemsPerPage = () => {
+            setItemsPerPage(window.innerWidth < 768 ? 5 : 10);
+        };
+        updateItemsPerPage();
+        window.addEventListener('resize', updateItemsPerPage);
+        return () => window.removeEventListener('resize', updateItemsPerPage);
+    }, []);
 
     // Delete Confirmation State
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -238,9 +248,9 @@ export const Stock: React.FC = () => {
 
     // Pagination Logic
     const totalItems = filteredProducts.length;
-    const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const paginatedProducts = filteredProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
 
     const lowStockCount = products.filter(p => p.stock && p.stock.quantity < p.stock.min_quantity).length;
     const outOfStockCount = products.filter(p => p.stock && p.stock.quantity === 0).length;
@@ -319,32 +329,64 @@ export const Stock: React.FC = () => {
 
             {/* Filters */}
             <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-                <div className="flex-1 max-w-md">
-                    <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus-within:border-primary/50 transition-colors">
-                        <Search className="text-gray-400" size={18} />
+                <div className="flex-1 w-full md:max-w-xs">
+                    <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-xl px-3 py-1.5 focus-within:border-primary/50 transition-colors">
+                        <Search className="text-gray-500" size={16} />
                         <input
                             type="text"
-                            placeholder="Buscar produto pelo nome..."
+                            placeholder="Buscar produto..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="bg-transparent border-none focus:ring-0 text-white placeholder:text-gray-500 flex-1 outline-none py-1"
+                            className="bg-transparent border-none focus:ring-0 text-white placeholder:text-gray-600 flex-1 outline-none py-0.5 text-xs font-black uppercase tracking-widest"
                         />
                     </div>
                 </div>
 
-                <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
-                    {['Todos', ...categories.filter(c => !['Lanches', 'Drinks'].includes(c.name)).map(c => c.name)].map(category => (
-                        <button
-                            key={category}
-                            onClick={() => setSelectedCategory(category)}
-                            className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${selectedCategory === category
-                                ? 'bg-primary text-white shadow-lg shadow-primary/20'
-                                : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white'
-                                }`}
-                        >
-                            {category}
-                        </button>
-                    ))}
+                <div className="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+                    {/* Botões de navegação Mobile */}
+                    <button
+                        onClick={() => setFilterSlideIndex(prev => Math.max(0, prev - 1))}
+                        disabled={filterSlideIndex === 0}
+                        className="md:hidden size-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 transition-all"
+                    >
+                        <ChevronLeft size={18} />
+                    </button>
+
+                    <div className="flex-1 md:flex-none overflow-hidden">
+                        <div className="flex gap-2 transition-all duration-300 md:overflow-x-auto pb-2 md:pb-0">
+                            {(() => {
+                                const allOptions = ['Todos', ...categories.filter(c => !['Lanches', 'Drinks', 'Extras'].includes(c.name)).map(c => c.name)];
+                                // No mobile mostramos apenas 2, no desktop mostramos todos com scroll
+                                const visibleOptions = typeof window !== 'undefined' && window.innerWidth < 768
+                                    ? allOptions.slice(filterSlideIndex, filterSlideIndex + 2)
+                                    : allOptions;
+
+                                return visibleOptions.map(category => (
+                                    <button
+                                        key={category}
+                                        onClick={() => setSelectedCategory(category)}
+                                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all flex-1 md:flex-none ${selectedCategory === category
+                                            ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                                            : 'bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/5'
+                                            }`}
+                                    >
+                                        {category}
+                                    </button>
+                                ));
+                            })()}
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={() => {
+                            const allOptionsCount = 1 + categories.filter(c => !['Lanches', 'Drinks', 'Extras'].includes(c.name)).length;
+                            setFilterSlideIndex(prev => Math.min(allOptionsCount - 2, prev + 1));
+                        }}
+                        disabled={filterSlideIndex >= (1 + categories.filter(c => !['Lanches', 'Drinks', 'Extras'].includes(c.name)).length) - 2}
+                        className="md:hidden size-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 transition-all"
+                    >
+                        <ChevronRight size={18} />
+                    </button>
                 </div>
             </div>
 

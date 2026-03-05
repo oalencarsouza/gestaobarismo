@@ -57,6 +57,7 @@ export interface Order {
   client_phone?: string;
   status: OrderStatus;
   total: number;
+  observation?: string;
   created_at?: string;
   updated_at?: string;
   order_items?: OrderItem[];

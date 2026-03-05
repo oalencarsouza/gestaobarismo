@@ -247,14 +247,14 @@ export const MenuView: React.FC = () => {
                 </div>
 
                 <div className="flex gap-3 w-full lg:w-auto">
-                    <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg px-4 py-2 flex-1 lg:min-w-[250px]">
-                        <Search className="text-gray-500" size={20} />
+                    <div className="flex items-center gap-1.5 sm:gap-2 bg-white/5 border border-white/10 rounded-lg px-2.5 sm:px-4 py-1.5 sm:py-2 flex-1 lg:min-w-[250px]">
+                        <Search className="text-gray-500" size={18} />
                         <input
                             type="text"
                             placeholder={selectedMenu ? "Buscar item..." : "Buscar cardápio..."}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="bg-transparent border-none focus:ring-0 text-white placeholder:text-gray-500 flex-1 outline-none"
+                            className="bg-transparent border-none focus:ring-0 text-white placeholder:text-gray-500 flex-1 outline-none text-xs sm:text-sm"
                         />
                     </div>
 
@@ -262,10 +262,10 @@ export const MenuView: React.FC = () => {
                         !isViewer && (
                             <button
                                 onClick={() => setIsAddItemModalOpen(true)}
-                                className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all whitespace-nowrap"
+                                className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all whitespace-nowrap"
                             >
                                 <PlusCircle size={20} />
-                                Adicionar Item
+                                <span className="hidden sm:inline">Adicionar Item</span>
                             </button>
                         )
                     ) : (
@@ -288,10 +288,10 @@ export const MenuView: React.FC = () => {
                                         setMenuToEdit(null);
                                         setIsCreateMenuModalOpen(true);
                                     }}
-                                    className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all whitespace-nowrap"
+                                    className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all whitespace-nowrap"
                                 >
                                     <PlusCircle size={20} />
-                                    Novo Cardápio
+                                    <span className="hidden sm:inline">Novo Cardápio</span>
                                 </button>
                             </div>
                         )

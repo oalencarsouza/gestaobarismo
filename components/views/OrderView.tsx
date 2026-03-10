@@ -401,7 +401,7 @@ export const OrderView: React.FC<OrderViewProps> = ({
         printWindow.document.write(`
             <html>
                 <head>
-                    <title>Impressão - GESTBARISMO</title>
+                    <title>Impressão - GESBAR</title>
                     <style>
                         @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;700&family=Playfair+Display:ital,wght@1,700&display=swap');
                         body { 

@@ -201,7 +201,7 @@ export const Reports: React.FC = () => {
         doc.setFontSize(22);
         doc.setFont('helvetica', 'bolditalic');
         doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-        doc.text('GESTBARISMO', 14, 20);
+        doc.text('GESBAR', 14, 20);
 
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
@@ -283,7 +283,7 @@ export const Reports: React.FC = () => {
             doc.setPage(i);
             doc.setFontSize(8);
             doc.setTextColor(150);
-            doc.text('GestBarismo Pro - Inteligência de Bar', 14, 285);
+            doc.text('GesBar Pro - Inteligência de Bar', 14, 285);
             doc.text(`Página ${i} de ${pageCount}`, 196, 285, { align: 'right' });
         }
 
@@ -548,7 +548,7 @@ export const Reports: React.FC = () => {
                         <div className="w-full max-w-[800px] bg-white p-[50px] text-zinc-900 shadow-2xl">
                             <div className="flex justify-between items-start border-b-2 border-zinc-900 pb-8 mb-10">
                                 <div>
-                                    <h1 className="text-4xl font-black italic text-primary">GESTBARISMO</h1>
+                                    <h1 className="text-4xl font-black italic text-primary">GESBAR</h1>
                                     <p className="text-zinc-500 font-bold uppercase text-[10px]">Relatórios de Gestão</p>
                                 </div>
                                 <div className="text-right">
@@ -595,7 +595,7 @@ export const Reports: React.FC = () => {
                             </div>
 
                             <div className="mt-20 pt-8 border-t border-zinc-200 text-[8px] font-black uppercase flex justify-between">
-                                <span>GestBarismo Pro</span>
+                                <span>GesBar Pro</span>
                                 <span>Página 1</span>
                             </div>
                         </div>

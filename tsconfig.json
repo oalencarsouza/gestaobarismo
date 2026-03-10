@@ -28,7 +28,6 @@
     "noEmit": true
   },
   "exclude": [
-    "gestaobarismo",
     "node_modules",
     "dist"
   ]

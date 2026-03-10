@@ -1,6 +1,6 @@
 # 📝 Plano de Implementação: Nota Fiscal (Reforma Tributária 2026)
 
-Este plano descreve as etapas necessárias para adaptar o **GestBarismo** à nova forma de emissão de nota fiscal no Brasil, considerando a **Reforma Tributária (IBS/CBS)** e a obrigatoriedade da **NFS-e Nacional/NFC-e unificada**.
+Este plano descreve as etapas necessárias para adaptar o **GesBar** à nova forma de emissão de nota fiscal no Brasil, considerando a **Reforma Tributária (IBS/CBS)** e a obrigatoriedade da **NFS-e Nacional/NFC-e unificada**.
 
 ## 1. Mudanças na Estrutura de Dados (Banco de Dados)   
 

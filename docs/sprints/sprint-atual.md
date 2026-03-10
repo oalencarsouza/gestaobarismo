@@ -33,4 +33,4 @@ O objetivo deste ciclo é realizar a integração com o banco de dados para torn
 - **TCC:** Documentar dificuldades de integração para enriquecer o relatório final do curso técnico.
 
 ---
-*Documentação gerada automaticamente para o projeto GestBarismo.*
+*Documentação gerada automaticamente para o projeto GesBar.*

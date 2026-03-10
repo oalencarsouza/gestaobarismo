@@ -115,9 +115,9 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     {/* Logo Section */}
                     <div className="mb-8 flex flex-col items-center">
                         <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-orange-600/10 p-2 border border-orange-600/20 shadow-[0_0_20px_rgba(234,88,12,0.15)] overflow-hidden">
-                            <img src="/logo.svg" alt="GESBAR Logo" className="h-full w-full object-cover rounded-full drop-shadow-lg" />
+                            <img src="/logo.svg" alt="GESBAR Logo" className="h-full w-full object-contain drop-shadow-lg" />
                         </div>
-                        <h1 className="mb-2 text-center text-3xl font-black text-white tracking-tight leading-tight">
+                        <h1 className="mb-2 text-center text-3xl font-black text-white tracking-tight leading-tight uppercase font-display">
                             Bem vindo ao <span className="text-orange-500">GESBAR!</span>
                         </h1>
                         <p className="text-center text-sm text-zinc-400">
@@ -194,7 +194,7 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
 
                     {/* Footer Card */}
                     <div className="mt-8 text-center text-[10px] uppercase tracking-widest text-zinc-600">
-                        © 2026 BARSYSTEM ADMIN • GESTÃO PROFISSIONAL
+                        © 2026 GESBAR • GESTÃO PROFISSIONAL
                     </div>
                 </div>
 

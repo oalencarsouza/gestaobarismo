@@ -21,8 +21,8 @@ export const Header: React.FC<HeaderProps> = ({ onLogout, onMenuClick }) => {
                     </button>
                 )}
                 <div className="flex items-center gap-4 text-primary">
-                    <div className="size-8 flex items-center justify-center">
-                        <img src="/logo.svg" alt="GESBAR Logo" className="size-8 object-contain rounded-full" />
+                    <div className="size-10 flex items-center justify-center">
+                        <img src="/logo.svg" alt="GESBAR Logo" className="size-10 object-contain drop-shadow-md" />
                     </div>
                     <h2 className="text-white text-lg font-bold leading-tight tracking-[-0.015em] hidden xs:block">GESBAR</h2>
                 </div>

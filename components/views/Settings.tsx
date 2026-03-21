@@ -4,7 +4,7 @@ import { Plus, Edit2, Trash2, X, Check, Search, Shield, User, Database, AlertTri
 import { useNotification } from '../../contexts/NotificationContext';
 
 interface AuthUser {
-    id?: number;
+    id?: string | number;
     username: string;
     password?: string;
     role: string;
@@ -113,7 +113,7 @@ export const Settings: React.FC = () => {
                     .update(updateData)
                     .eq('id', editingUser.id);
 
-                if (clientId) query = query.eq('client_id', clientId);
+                if (clientId && !isMasterAdmin) query = query.eq('client_id', clientId);
                 const { error } = await query;
 
                 if (error) throw error;
@@ -174,7 +174,7 @@ export const Settings: React.FC = () => {
                 .delete()
                 .eq('id', userToDelete.id);
 
-            if (clientId) query = query.eq('client_id', clientId);
+            if (clientId && !isMasterAdmin) query = query.eq('client_id', clientId);
             const { error } = await query;
 
             if (error) throw error;

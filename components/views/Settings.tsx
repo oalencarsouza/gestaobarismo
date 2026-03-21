@@ -29,6 +29,8 @@ export const Settings: React.FC = () => {
     const [bulkDeleteTarget, setBulkDeleteTarget] = useState<string | null>(null);
     const [bulkDeleteConfirmText, setBulkDeleteConfirmText] = useState('');
     const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+    const [orderDeleteStartDate, setOrderDeleteStartDate] = useState('');
+    const [orderDeleteEndDate, setOrderDeleteEndDate] = useState('');
 
     const isMasterAdmin = localStorage.getItem('username') === 'danielalencarsouz@gmail.com';
 
@@ -206,10 +208,35 @@ export const Settings: React.FC = () => {
 
             switch (bulkDeleteTarget) {
                 case 'orders':
-                    // We need to delete order_items first due to FK
-                    const { error: itemsErr } = await supabase.from('order_items').delete().eq('client_id', clientId);
+                    if (!orderDeleteStartDate || !orderDeleteEndDate) {
+                        throw new Error("Selecione a data inicial e final para excluir pedidos.");
+                    }
+                    const start = new Date(orderDeleteStartDate);
+                    const end = new Date(orderDeleteEndDate);
+                    end.setHours(23, 59, 59, 999);
+
+                    const diffTime = end.getTime() - start.getTime();
+                    const diffDays = diffTime / (1000 * 3600 * 24);
+
+                    if (diffDays < 0) throw new Error("A data inicial não pode ser superior à data final.");
+                    if (diffDays > 185) throw new Error("O período máximo permitido é de 6 meses por vez.");
+
+                    const { error: itemsErr } = await supabase
+                        .from('order_items')
+                        .delete()
+                        .eq('client_id', clientId)
+                        .gte('created_at', start.toISOString())
+                        .lte('created_at', end.toISOString());
+
                     if (itemsErr) throw itemsErr;
-                    const { error: ordersErr } = await supabase.from('orders').delete().eq('client_id', clientId);
+
+                    const { error: ordersErr } = await supabase
+                        .from('orders')
+                        .delete()
+                        .eq('client_id', clientId)
+                        .gte('created_at', start.toISOString())
+                        .lte('created_at', end.toISOString());
+
                     error = ordersErr;
                     break;
                 case 'stock':
@@ -235,6 +262,14 @@ export const Settings: React.FC = () => {
                     const { error: catErr } = await supabase.from('categories').delete().eq('client_id', clientId);
                     error = catErr;
                     break;
+                case 'credentials':
+                    const { error: credsErr } = await supabase
+                        .from('auth_users')
+                        .delete()
+                        .eq('client_id', clientId)
+                        .neq('username', 'danielalencarsouz@gmail.com');
+                    error = credsErr;
+                    break;
             }
 
             if (error) throw error;
@@ -242,6 +277,8 @@ export const Settings: React.FC = () => {
             setIsBulkDeleteModalOpen(false);
             setBulkDeleteTarget(null);
             setBulkDeleteConfirmText('');
+            setOrderDeleteStartDate('');
+            setOrderDeleteEndDate('');
         } catch (err) {
             console.error("Erro na exclusão em massa:", err);
             showError("Erro ao processar exclusão em massa.");
@@ -500,32 +537,37 @@ export const Settings: React.FC = () => {
             {isBulkDeleteModalOpen && isMasterAdmin && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4 animate-in fade-in duration-300">
                     <div className="bg-[#120f0e] border border-red-500/30 rounded-3xl w-full max-w-2xl shadow-[0_0_50px_rgba(239,68,68,0.2)] flex flex-col max-h-[90vh] overflow-hidden animate-in scale-95 duration-200">
-                        <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between">
                             <div>
                                 <h2 className="text-2xl font-black text-red-500 flex items-center gap-3 italic">
                                     <Database size={28} />
                                     EXCLUSÃO EM MASSA
                                 </h2>
-                                <p className="text-zinc-500 text-xs font-black uppercase tracking-widest mt-1 opacity-60">Bar Manager Pro // Clean Master</p>
+                                <p className="text-zinc-500 text-xs font-black uppercase tracking-widest mt-1 opacity-60">GESBAR // LIMPEZA DE DADOS</p>
                             </div>
                             <button onClick={() => { setIsBulkDeleteModalOpen(false); setBulkDeleteTarget(null); }} className="size-10 rounded-2xl bg-white/5 text-zinc-500 hover:text-white hover:bg-white/10 transition-all flex items-center justify-center">
                                 <X size={24} />
                             </button>
                         </div>
 
-                        <div className="p-8 space-y-8 overflow-y-auto">
+                        <div className="p-6 space-y-6 overflow-y-auto scrollbar-none">
                             {!bulkDeleteTarget ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {[
                                         { id: 'orders', label: 'Todos os Pedidos', icon: 'receipt_long', desc: 'Remove histórico e itens de pedidos' },
                                         { id: 'stock', label: 'Esvaziar Estoque', icon: 'inventory_2', desc: 'Zera as quantidades de todos os itens' },
                                         { id: 'menu', label: 'Limpar Cardápios', icon: 'restaurant_menu', desc: 'Remove cardápios e itens vinculados' },
-                                        { id: 'categories', label: 'Remover Categorias', icon: 'category', desc: 'Apaga todas as categorias e produtos' }
+                                        { id: 'categories', label: 'Remover Categorias', icon: 'category', desc: 'Apaga todas as categorias e produtos' },
+                                        { id: 'credentials', label: 'Limpar Credenciais', icon: 'badge', desc: 'Remove todos os acessos exceto o admin' }
                                     ].map(item => (
                                         <button
                                             key={item.id}
-                                            onClick={() => setBulkDeleteTarget(item.id)}
-                                            className="flex flex-col items-start gap-4 p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-red-500/50 hover:bg-red-500/5 transition-all group text-left"
+                                            onClick={() => {
+                                                setBulkDeleteTarget(item.id);
+                                                setOrderDeleteStartDate('');
+                                                setOrderDeleteEndDate('');
+                                            }}
+                                            className="flex flex-col items-start gap-3 p-5 rounded-2xl bg-white/5 border border-white/10 hover:border-red-500/50 hover:bg-red-500/5 transition-all group text-left"
                                         >
                                             <div className="size-12 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-red-500/20 group-hover:text-red-500 transition-all">
                                                 <span className="material-symbols-outlined text-3xl">{item.icon}</span>
@@ -545,11 +587,40 @@ export const Settings: React.FC = () => {
                                             <h3 className="font-black text-lg uppercase italic">AVISO CRÍTICO</h3>
                                         </div>
                                         <p className="text-red-200/80 text-sm leading-relaxed">
-                                            Você selecionou <strong className="text-white">"{bulkDeleteTarget === 'orders' ? 'PEDIDOS' : bulkDeleteTarget === 'stock' ? 'ESTOQUE' : bulkDeleteTarget === 'menu' ? 'CARDÁPIOS' : 'CATEGORIAS'}"</strong> para exclusão total. Esta ação é irreversível e afetará permanentemente todos os dados deste cliente.
+                                            Você selecionou <strong className="text-white">"{bulkDeleteTarget === 'orders' ? 'PEDIDOS' : bulkDeleteTarget === 'stock' ? 'ESTOQUE' : bulkDeleteTarget === 'menu' ? 'CARDÁPIOS' : bulkDeleteTarget === 'credentials' ? 'CREDENCIAIS' : 'CATEGORIAS'}"</strong> para exclusão em massa. Esta ação é irreversível e afetará permanentemente os dados.
                                         </p>
                                     </div>
 
-                                    <div className="space-y-4 p-8 bg-black/40 rounded-3xl border border-red-500/20 relative overflow-hidden group">
+                                    {bulkDeleteTarget === 'orders' && (
+                                        <div className="bg-white/5 border border-white/10 p-5 rounded-2xl space-y-4">
+                                            <label className="block text-[11px] font-black text-white/50 uppercase tracking-[0.2em] mb-2 text-center">
+                                                Selecione o Período (Máx. 6 Meses)
+                                            </label>
+                                            <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
+                                                <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-xl px-4 py-2 w-full sm:w-auto">
+                                                    <span className="text-zinc-500 text-xs font-black uppercase">De:</span>
+                                                    <input
+                                                        type="date"
+                                                        value={orderDeleteStartDate}
+                                                        onChange={(e) => setOrderDeleteStartDate(e.target.value)}
+                                                        className="bg-transparent text-white focus:outline-none text-sm font-mono w-full"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-3 bg-black/40 border border-white/10 rounded-xl px-4 py-2 w-full sm:w-auto">
+                                                    <span className="text-zinc-500 text-xs font-black uppercase">Até:</span>
+                                                    <input
+                                                        type="date"
+                                                        value={orderDeleteEndDate}
+                                                        onChange={(e) => setOrderDeleteEndDate(e.target.value)}
+                                                        className="bg-transparent text-white focus:outline-none text-sm font-mono w-full"
+                                                        max={new Date().toISOString().split('T')[0]}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-4 p-6 bg-black/40 rounded-3xl border border-red-500/20 relative overflow-hidden group">
                                         <div className="absolute top-0 right-0 p-8 opacity-[0.02] pointer-events-none transition-transform group-focus-within:scale-110">
                                             <AlertTriangle size={120} />
                                         </div>
@@ -584,14 +655,16 @@ export const Settings: React.FC = () => {
                             )}
                         </div>
 
-                        <div className="p-8 border-t border-white/5 bg-white/5 flex gap-3 justify-end">
+                        <div className="p-5 border-t border-white/5 bg-white/5 flex gap-3 justify-end">
                             <button
                                 onClick={() => {
                                     if (bulkDeleteTarget) setBulkDeleteTarget(null);
                                     else setIsBulkDeleteModalOpen(false);
                                     setBulkDeleteConfirmText('');
+                                    setOrderDeleteStartDate('');
+                                    setOrderDeleteEndDate('');
                                 }}
-                                className="px-6 py-4 rounded-xl text-zinc-500 font-black uppercase tracking-widest text-[10px] hover:text-white transition-all"
+                                className="px-6 py-3 rounded-xl text-zinc-500 font-black uppercase tracking-widest text-[10px] hover:text-white transition-all"
                                 disabled={isBulkDeleting}
                             >
                                 {bulkDeleteTarget ? 'Voltar' : 'Fechar'}
@@ -600,7 +673,7 @@ export const Settings: React.FC = () => {
                                 <button
                                     onClick={handleBulkDelete}
                                     disabled={bulkDeleteConfirmText !== "Zerar este módulo agora" || isBulkDeleting}
-                                    className="flex items-center gap-3 px-8 py-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-red-500/20 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
+                                    className="flex items-center gap-3 px-8 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl shadow-red-500/20 transition-all active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
                                 >
                                     {isBulkDeleting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
                                     CONFIRMAR EXCLUSÃO TOTAL

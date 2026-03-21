@@ -48,6 +48,10 @@ export const Stock: React.FC = () => {
 
     // Add Stock Modal State
     const [isAddStockModalOpen, setIsAddStockModalOpen] = useState(false);
+    const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [categoryModalTab, setCategoryModalTab] = useState<'create' | 'delete'>('create');
+    const [categoriesToDelete, setCategoriesToDelete] = useState<string[]>([]);
 
     useEffect(() => {
         fetchData();
@@ -179,6 +183,62 @@ export const Stock: React.FC = () => {
         }
     };
 
+
+    const handleCreateCategory = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newCategoryName.trim()) return;
+
+        if (categories.length >= 18) { // Lanches, Drinks, Extras + 15 custom
+            showError("O sistema suporta no máximo 15 categorias personalizadas.");
+            return;
+        }
+
+        setIsIdLoading('creating_category');
+        try {
+            const clientId = localStorage.getItem('clientId');
+            const { error } = await supabase
+                .from('categories')
+                .insert([{ name: newCategoryName.trim(), client_id: clientId }]);
+            
+            if (error) throw error;
+            showSuccess('Categoria criada com sucesso!');
+            setNewCategoryName('');
+            setIsAddCategoryModalOpen(false);
+            fetchData();
+        } catch (err: any) {
+            console.error('Erro ao criar categoria:', err);
+            showError('Erro ao criar categoria.');
+        } finally {
+            setIsIdLoading(null);
+        }
+    };
+
+    const handleDeleteCategories = async () => {
+        if (categoriesToDelete.length === 0) return;
+        setIsIdLoading('deleting_categories');
+        try {
+            const { error: delErr } = await supabase
+                .from('categories')
+                .delete()
+                .in('id', categoriesToDelete);
+
+            if (delErr) {
+                if (delErr.code === '23503') {
+                    throw new Error('Você precisa remover ou realocar os produtos vinculados antes de excluir a categoria.');
+                }
+                throw delErr;
+            }
+            
+            showSuccess(`${categoriesToDelete.length} categoria(s) excluída(s) com sucesso!`);
+            setCategoriesToDelete([]);
+            fetchData();
+        } catch (err: any) {
+            console.error('Erro ao excluir categorias:', err);
+            showError(err.message || 'Erro ao excluir categorias.');
+        } finally {
+            setIsIdLoading(null);
+        }
+    };
 
     const handleAddStock = async (productId: string, quantityToAdd: number) => {
         setIsIdLoading('adding_stock');
@@ -346,23 +406,20 @@ export const Stock: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
-                    {/* Botões de navegação Mobile */}
                     <button
                         onClick={() => setFilterSlideIndex(prev => Math.max(0, prev - 1))}
                         disabled={filterSlideIndex === 0}
-                        className="md:hidden size-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 transition-all"
+                        className="size-10 flex shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 transition-all"
                     >
                         <ChevronLeft size={18} />
                     </button>
 
-                    <div className="flex-1 md:flex-none overflow-hidden">
-                        <div className="flex gap-2 transition-all duration-300 md:overflow-x-auto pb-2 md:pb-0">
+                    <div className="flex-1 md:flex-none overflow-hidden max-w-[180px] md:max-w-md">
+                        <div className="flex gap-2 transition-all duration-300">
                             {(() => {
-                                const allOptions = ['Todos', ...categories.filter(c => !['Lanches', 'Drinks', 'Extras'].includes(c.name)).map(c => c.name)];
-                                // No mobile mostramos apenas 2, no desktop mostramos todos com scroll
-                                const visibleOptions = typeof window !== 'undefined' && window.innerWidth < 768
-                                    ? allOptions.slice(filterSlideIndex, filterSlideIndex + 2)
-                                    : allOptions;
+                                const allOptions = ['Todos', ...categories.filter(c => !['Lanches', 'Drinks', 'Extras'].includes(c.name)).map(c => c.name)].slice(0, 16);
+                                const maxVisible = typeof window !== 'undefined' && window.innerWidth >= 768 ? 4 : 2;
+                                const visibleOptions = allOptions.slice(filterSlideIndex, filterSlideIndex + maxVisible);
 
                                 return visibleOptions.map(category => (
                                     <button
@@ -382,14 +439,31 @@ export const Stock: React.FC = () => {
 
                     <button
                         onClick={() => {
-                            const allOptionsCount = 1 + categories.filter(c => !['Lanches', 'Drinks', 'Extras'].includes(c.name)).length;
-                            setFilterSlideIndex(prev => Math.min(allOptionsCount - 2, prev + 1));
+                            const allOptionsCount = Math.min(16, 1 + categories.filter(c => !['Lanches', 'Drinks', 'Extras'].includes(c.name)).length);
+                            const maxVisible = typeof window !== 'undefined' && window.innerWidth >= 768 ? 4 : 2;
+                            setFilterSlideIndex(prev => Math.min(allOptionsCount - maxVisible, prev + 1));
                         }}
-                        disabled={filterSlideIndex >= (1 + categories.filter(c => !['Lanches', 'Drinks', 'Extras'].includes(c.name)).length) - 2}
-                        className="md:hidden size-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 transition-all"
+                        disabled={
+                            (() => {
+                                const count = Math.min(16, 1 + categories.filter(c => !['Lanches', 'Drinks', 'Extras'].includes(c.name)).length);
+                                const maxVisible = typeof window !== 'undefined' && window.innerWidth >= 768 ? 4 : 2;
+                                return filterSlideIndex >= Math.max(0, count - maxVisible);
+                            })()
+                        }
+                        className="size-10 shrink-0 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 transition-all"
                     >
                         <ChevronRight size={18} />
                     </button>
+
+                    {!isViewer && (
+                        <button
+                            onClick={() => setIsAddCategoryModalOpen(true)}
+                            className="ml-2 shrink-0 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] whitespace-nowrap transition-all flex items-center justify-center gap-1.5 border border-orange-500/20 text-orange-500 hover:bg-orange-500/20"
+                        >
+                            <PlusCircle size={14} />
+                            CATEGORIA
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -599,6 +673,99 @@ export const Stock: React.FC = () => {
                 categories={categories}
                 products={products}
             />
+
+            {/* Modal de Gestão de Categorias */}
+            {isAddCategoryModalOpen && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-[#120f0e] border border-orange-500/20 rounded-3xl w-full max-w-sm shadow-[0_0_50px_rgba(249,115,22,0.1)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-white/5 flex flex-col gap-5 bg-white/5">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-xl font-black text-white uppercase italic tracking-tighter flex items-center gap-2">
+                                    Categorias
+                                </h2>
+                                <button onClick={() => { setIsAddCategoryModalOpen(false); setCategoriesToDelete([]); }} className="size-8 rounded-xl bg-white/5 text-zinc-500 hover:text-white transition-all flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-lg">close</span>
+                                </button>
+                            </div>
+                            <div className="flex bg-black/40 rounded-xl p-1 gap-1">
+                                <button
+                                    onClick={() => setCategoryModalTab('create')}
+                                    className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${categoryModalTab === 'create' ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'text-zinc-500 hover:text-white'}`}
+                                >
+                                    Criar
+                                </button>
+                                <button
+                                    onClick={() => setCategoryModalTab('delete')}
+                                    className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${categoryModalTab === 'delete' ? 'bg-red-500 text-white shadow-lg shadow-red-500/20' : 'text-zinc-500 hover:text-white'}`}
+                                >
+                                    Excluir
+                                </button>
+                            </div>
+                        </div>
+
+                        {categoryModalTab === 'create' ? (
+                            <form onSubmit={handleCreateCategory} className="p-6 flex flex-col gap-6 animate-in fade-in slide-in-from-left-4 duration-300">
+                                <div>
+                                    <label className="block text-[11px] font-black text-white/40 uppercase tracking-[0.2em] mb-3">Nome da Nova Categoria</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={newCategoryName}
+                                        onChange={(e) => setNewCategoryName(e.target.value)}
+                                        placeholder="Ex: Cervejas Premium"
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-orange-500/50 focus:ring-2 focus:ring-orange-500/10 transition-colors font-medium placeholder:text-zinc-600"
+                                        autoFocus
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={isIdLoading === 'creating_category' || !newCategoryName.trim()}
+                                    className="w-full py-4 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-black uppercase tracking-[0.2em] text-[11px] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xl shadow-orange-500/20"
+                                >
+                                    {isIdLoading === 'creating_category' ? <Loader2 className="animate-spin" size={16} /> : 'Confirmar Criação'}
+                                </button>
+                            </form>
+                        ) : (
+                            <div className="p-6 flex flex-col gap-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                                <label className="block text-[11px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">
+                                    Selecione até 2 categorias
+                                </label>
+                                <div className="flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {categories.map(cat => {
+                                        const isSelected = categoriesToDelete.includes(cat.id);
+                                        return (
+                                            <button
+                                                key={cat.id}
+                                                onClick={() => {
+                                                    if (isSelected) {
+                                                        setCategoriesToDelete(prev => prev.filter(id => id !== cat.id));
+                                                    } else {
+                                                        if (categoriesToDelete.length >= 2) return;
+                                                        setCategoriesToDelete(prev => [...prev, cat.id]);
+                                                    }
+                                                }}
+                                                className={`flex items-center justify-between p-3.5 rounded-xl border transition-all text-left ${isSelected ? 'bg-red-500/10 border-red-500/50 text-white' : 'bg-black/40 border-white/5 text-zinc-400 hover:border-white/20 hover:text-zinc-200'}`}
+                                            >
+                                                <span className="font-bold text-xs uppercase tracking-widest truncate max-w-[200px]">{cat.name}</span>
+                                                <div className={`size-5 rounded-md flex items-center justify-center border transition-all ${isSelected ? 'border-red-500 bg-red-500' : 'border-zinc-700 bg-transparent'}`}>
+                                                    {isSelected && <span className="material-symbols-outlined text-[14px] text-white">check</span>}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <button
+                                    onClick={handleDeleteCategories}
+                                    disabled={isIdLoading === 'deleting_categories' || categoriesToDelete.length === 0}
+                                    className="w-full mt-2 py-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black uppercase tracking-[0.2em] text-[11px] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-xl shadow-red-500/20"
+                                >
+                                    {isIdLoading === 'deleting_categories' ? <Loader2 className="animate-spin" size={16} /> : `Excluir ${categoriesToDelete.length} Selecionada(s)`}
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </main>
     );
 };

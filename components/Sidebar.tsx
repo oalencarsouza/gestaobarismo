@@ -65,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
     const visibleMenuItems = menuItems.filter(item => {
         if (isViewer) {
-            return ['orders', 'history', 'menu'].includes(item.viewName as string);
+            return ['orders', 'history', 'menu', 'stock'].includes(item.viewName as string);
         }
         return true;
     });

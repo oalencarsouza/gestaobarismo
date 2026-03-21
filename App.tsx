@@ -67,7 +67,7 @@ const App: React.FC = () => {
         const isViewer = userRole === 'viewer';
         const isMasterAdmin = username === 'danielalencarsouz@gmail.com';
 
-        if (isViewer && ['dashboard', 'reports', 'settings', 'stock'].includes(view)) {
+        if (isViewer && ['dashboard', 'reports', 'settings'].includes(view)) {
             setView('orders');
         } else if (view === 'settings' && !isMasterAdmin) {
             setView('orders');

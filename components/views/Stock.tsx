@@ -15,6 +15,7 @@ type StockFilterStatus = 'all' | 'in_stock' | 'low_stock' | 'out_of_stock';
 
 export const Stock: React.FC = () => {
     const { showSuccess, showError } = useNotification();
+    const isViewer = localStorage.getItem('userRole') === 'viewer';
     const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
@@ -279,13 +280,15 @@ export const Stock: React.FC = () => {
                         <PackagePlus size={20} className="text-primary" />
                         Adicionar Estoque
                     </button>
-                    <button
-                        onClick={() => { setEditingProduct(undefined); setIsEditModalOpen(true); }}
-                        className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all"
-                    >
-                        <PlusCircle size={20} />
-                        Novo Produto
-                    </button>
+                    {!isViewer && (
+                        <button
+                            onClick={() => { setEditingProduct(undefined); setIsEditModalOpen(true); }}
+                            className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-lg font-bold shadow-lg shadow-primary/20 transition-all"
+                        >
+                            <PlusCircle size={20} />
+                            Novo Produto
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -449,20 +452,22 @@ export const Stock: React.FC = () => {
                                         />
                                     </td>
                                     <td className="px-6 py-4">
-                                        <div className="flex items-center justify-end gap-1">
-                                            <button
-                                                onClick={() => { setEditingProduct(product); setIsEditModalOpen(true); }}
-                                                className="p-2 rounded-lg hover:bg-blue-500/10 text-gray-400 hover:text-white transition-colors"
-                                            >
-                                                <Edit2 size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteClick(product.id)}
-                                                className="p-2 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-colors"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
+                                        {!isViewer && (
+                                            <div className="flex items-center justify-end gap-1">
+                                                <button
+                                                    onClick={() => { setEditingProduct(product); setIsEditModalOpen(true); }}
+                                                    className="p-2 rounded-lg hover:bg-blue-500/10 text-gray-400 hover:text-white transition-colors"
+                                                >
+                                                    <Edit2 size={18} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteClick(product.id)}
+                                                    className="p-2 rounded-lg hover:bg-red-500/10 text-gray-400 hover:text-red-500 transition-colors"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        )}
                                     </td>
                                 </tr>
                             );
@@ -491,20 +496,22 @@ export const Stock: React.FC = () => {
                                         <span className="text-gray-500 text-[10px] font-black tracking-widest uppercase">{category?.name || 'Sem Categoria'}</span>
                                     </div>
                                 </div>
-                                <div className="flex gap-1">
-                                    <button
-                                        onClick={() => { setEditingProduct(product); setIsEditModalOpen(true); }}
-                                        className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-white transition-colors"
-                                    >
-                                        <Edit2 size={16} />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDeleteClick(product.id)}
-                                        className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-red-500 transition-colors"
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                </div>
+                                {!isViewer && (
+                                    <div className="flex gap-1">
+                                        <button
+                                            onClick={() => { setEditingProduct(product); setIsEditModalOpen(true); }}
+                                            className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-white transition-colors"
+                                        >
+                                            <Edit2 size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteClick(product.id)}
+                                            className="p-2 rounded-lg bg-white/5 text-gray-400 hover:text-red-500 transition-colors"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/5">

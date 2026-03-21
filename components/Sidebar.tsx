@@ -134,7 +134,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     />
                 ))}
             </div>
-            {userRole === 'admin' && (
+            {userRole === 'admin' && localStorage.getItem('username') === 'danielalencarsouz@gmail.com' && (
                 <div className="mt-auto pt-4">
                     <SidebarLink
                         icon="settings"

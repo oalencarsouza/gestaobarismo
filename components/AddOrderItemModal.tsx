@@ -400,58 +400,61 @@ export const AddOrderItemModal: React.FC<AddOrderItemModalProps> = ({
                         {/* Category Filter Chips */}
                         {(selectedMenu || isGlobalSearch) && categories.length > 0 && (
                             <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setFilterSlideIndex(prev => Math.max(0, prev - 1))}
-                                    disabled={filterSlideIndex === 0}
-                                    className="sm:hidden size-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 transition-all shrink-0"
-                                >
-                                    <ChevronLeft size={18} />
-                                </button>
+                                {(() => {
+                                    const allOptions = [
+                                        { id: null, name: 'todos' },
+                                        ...categories.map(c => ({ id: c.id, name: c.name.toLowerCase() }))
+                                    ];
+                                    const limit = isMobile ? 2 : 4;
+                                    const showNav = allOptions.length > limit;
 
-                                <div className="flex-1 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                                    <Filter size={14} className="text-gray-500 shrink-0" />
-                                    {(() => {
-                                        const allOptions = [
-                                            { id: null, name: 'todos' },
-                                            ...categories.map(c => ({ id: c.id, name: c.name.toLowerCase() }))
-                                        ];
+                                    return (
+                                        <>
+                                            {showNav && (
+                                                <button
+                                                    onClick={() => setFilterSlideIndex(prev => Math.max(0, prev - 1))}
+                                                    disabled={filterSlideIndex === 0}
+                                                    className="size-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 hover:bg-white/10 hover:text-white transition-all shrink-0 cursor-pointer disabled:cursor-not-allowed"
+                                                >
+                                                    <ChevronLeft size={18} />
+                                                </button>
+                                            )}
 
-                                        const visibleOptions = isMobile
-                                            ? allOptions.slice(filterSlideIndex, filterSlideIndex + 2)
-                                            : allOptions;
+                                            <div className="flex-1 flex items-center gap-2 overflow-hidden pb-1">
+                                                <Filter size={14} className="text-gray-500 shrink-0" />
+                                                {allOptions.slice(filterSlideIndex, filterSlideIndex + limit).map(opt => (
+                                                    <button
+                                                        key={opt.id ?? 'all'}
+                                                        onClick={() => setSelectedCategoryId(opt.id)}
+                                                        className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border flex-1 text-center ${(opt.id === selectedCategoryId || (!opt.id && !selectedCategoryId))
+                                                            ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20'
+                                                            : 'bg-white/5 border-white/10 text-gray-400 hover:text-white cursor-pointer'
+                                                            }`}
+                                                    >
+                                                        {opt.name}
+                                                    </button>
+                                                ))}
+                                            </div>
 
-                                        return visibleOptions.map(opt => (
-                                            <button
-                                                key={opt.id ?? 'all'}
-                                                onClick={() => setSelectedCategoryId(opt.id)}
-                                                className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all border flex-1 sm:flex-none text-center ${(opt.id === selectedCategoryId || (!opt.id && !selectedCategoryId))
-                                                    ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20'
-                                                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-white'
-                                                    }`}
-                                            >
-                                                {opt.name}
-                                            </button>
-                                        ));
-                                    })()}
-                                </div>
-
-                                <button
-                                    onClick={() => {
-                                        const count = 1 + categories.length;
-                                        setFilterSlideIndex(prev => Math.min(count - 2, prev + 1));
-                                    }}
-                                    disabled={filterSlideIndex >= (1 + categories.length) - 2}
-                                    className="sm:hidden size-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 transition-all shrink-0"
-                                >
-                                    <ChevronRight size={18} />
-                                </button>
+                                            {showNav && (
+                                                <button
+                                                    onClick={() => setFilterSlideIndex(prev => Math.min(allOptions.length - limit, prev + 1))}
+                                                    disabled={filterSlideIndex >= allOptions.length - limit}
+                                                    className="size-9 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-gray-400 disabled:opacity-20 hover:bg-white/10 hover:text-white transition-all shrink-0 cursor-pointer disabled:cursor-not-allowed"
+                                                >
+                                                    <ChevronRight size={18} />
+                                                </button>
+                                            )}
+                                        </>
+                                    );
+                                })()}
                             </div>
                         )}
                     </div>
                 )}
 
                 {/* Body */}
-                <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                <div className="flex-1 overflow-y-auto p-6 scrollbar-none">
                     {loading ? (
                         <div className="flex items-center justify-center py-20">
                             <Loader2 className="animate-spin text-primary" size={40} />

@@ -62,7 +62,14 @@ const App: React.FC = () => {
 
     useEffect(() => {
         const userRole = localStorage.getItem('userRole');
-        if (userRole === 'viewer' && ['dashboard', 'reports', 'settings', 'stock'].includes(view)) {
+        const username = localStorage.getItem('username');
+
+        const isViewer = userRole === 'viewer';
+        const isMasterAdmin = username === 'danielalencarsouz@gmail.com';
+
+        if (isViewer && ['dashboard', 'reports', 'settings', 'stock'].includes(view)) {
+            setView('orders');
+        } else if (view === 'settings' && !isMasterAdmin) {
             setView('orders');
         }
     }, [view]);

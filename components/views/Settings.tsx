@@ -39,7 +39,35 @@ export const Settings: React.FC = () => {
     const fetchUsers = async () => {
         setIsLoading(true);
         try {
-            const { data, error } = await supabase.from('auth_users').select('*').order('id', { ascending: true });
+            let clientId = localStorage.getItem('clientId');
+            const username = localStorage.getItem('username');
+
+            if (!clientId && username) {
+                const { data: authUser } = await supabase
+                    .from('auth_users')
+                    .select('client_id')
+                    .eq('username', username)
+                    .maybeSingle();
+
+                if (authUser?.client_id) {
+                    clientId = authUser.client_id;
+                    localStorage.setItem('clientId', clientId);
+                }
+            }
+
+            let query = supabase.from('auth_users').select('*').order('id', { ascending: true });
+
+            if (clientId) {
+                query = query.eq('client_id', clientId);
+            } else if (!isMasterAdmin) {
+                // Se não for master e não tiver ID, ele não deve ver nada
+                setUsers([]);
+                setIsLoading(false);
+                return;
+            }
+
+            const { data, error } = await query;
+
             if (error) throw error;
             setUsers(data || []);
         } catch (error) {
@@ -71,13 +99,23 @@ export const Settings: React.FC = () => {
         e.preventDefault();
         setIsSaving(true);
         try {
+            const clientId = localStorage.getItem('clientId');
+            if (!clientId && !isMasterAdmin) throw new Error("ID do cliente não encontrado.");
+
             if (editingUser?.id) {
                 // Update
                 const updateData: any = { username: formData.username, role: formData.role };
                 if (formData.password) {
-                    updateData.password = formData.password; // Update password only if provided
+                    updateData.password = formData.password;
                 }
-                const { error } = await supabase.from('auth_users').update(updateData).eq('id', editingUser.id);
+                let query = supabase
+                    .from('auth_users')
+                    .update(updateData)
+                    .eq('id', editingUser.id);
+
+                if (clientId) query = query.eq('client_id', clientId);
+                const { error } = await query;
+
                 if (error) throw error;
                 showSuccess("Credencial atualizada com sucesso!");
             } else {
@@ -88,8 +126,14 @@ export const Settings: React.FC = () => {
                     return;
                 }
                 const { error } = await supabase.from('auth_users').insert([
-                    { username: formData.username, password: formData.password, role: formData.role }
+                    {
+                        username: formData.username,
+                        password: formData.password,
+                        role: formData.role,
+                        client_id: clientId || null
+                    }
                 ]);
+
                 if (error) throw error;
                 showSuccess("Nova credencial criada com sucesso!");
             }
@@ -122,8 +166,19 @@ export const Settings: React.FC = () => {
         if (!userToDelete || !userToDelete.id) return;
 
         try {
-            const { error } = await supabase.from('auth_users').delete().eq('id', userToDelete.id);
+            const clientId = localStorage.getItem('clientId');
+            if (!clientId && !isMasterAdmin) throw new Error("ID do cliente não encontrado.");
+
+            let query = supabase
+                .from('auth_users')
+                .delete()
+                .eq('id', userToDelete.id);
+
+            if (clientId) query = query.eq('client_id', clientId);
+            const { error } = await query;
+
             if (error) throw error;
+
             showSuccess("Credencial removida com sucesso.");
             setIsDeleteModalOpen(false);
             setUserToDelete(null);
@@ -195,6 +250,22 @@ export const Settings: React.FC = () => {
         }
     };
 
+    if (!isMasterAdmin) {
+        return (
+            <main className="max-w-full mx-auto w-full h-full flex flex-col items-center justify-center p-8 animate-in fade-in duration-500">
+                <div className="bg-[#1a1614] border border-white/5 p-12 rounded-3xl flex flex-col items-center text-center max-w-md shadow-2xl">
+                    <div className="size-20 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mb-6">
+                        <Shield size={40} className="text-red-500" />
+                    </div>
+                    <h1 className="text-2xl font-black text-white mb-2 uppercase tracking-tighter italic">Acesso Restrito</h1>
+                    <p className="text-zinc-500 text-sm leading-relaxed">
+                        Apenas o administrador master tem permissão para gerenciar credenciais e configurações globais do sistema.
+                    </p>
+                </div>
+            </main>
+        );
+    }
+
     return (
         <main className="max-w-full overflow-x-hidden min-w-0 mx-auto w-full h-full flex flex-col p-4 md:p-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -202,22 +273,22 @@ export const Settings: React.FC = () => {
                     <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">Configurações de Acesso</h1>
                     <p className="text-zinc-400 mt-1">Gerencie as credenciais e níveis de acesso do sistema secundário.</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto">
                     {isMasterAdmin && (
                         <button
                             onClick={() => setIsBulkDeleteModalOpen(true)}
-                            className="bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 whitespace-nowrap"
+                            className="flex-1 md:flex-none bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 whitespace-nowrap"
                         >
                             <Database size={20} />
-                            Gestão de Dados
+                            Dados
                         </button>
                     )}
                     <button
                         onClick={() => handleOpenModal()}
-                        className="bg-primary hover:bg-orange-600 text-white px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 whitespace-nowrap"
+                        className="flex-1 md:flex-none bg-primary hover:bg-orange-600 text-white px-5 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 whitespace-nowrap"
                     >
                         <Plus size={20} />
-                        Nova Credencial
+                        Credencial
                     </button>
                 </div>
             </div>
@@ -251,15 +322,20 @@ export const Settings: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                             {filteredUsers.map((user) => (
                                 <div key={user.id} className="bg-[#1a1614] border border-white/5 rounded-xl p-5 hover:border-white/10 transition-colors group">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex items-center gap-3">
+                                    <div className="flex items-start justify-between gap-4 mb-4">
+                                        <div className="flex items-center gap-3 min-w-0 flex-1">
                                             <div className={`size-10 rounded-full flex items-center justify-center ${user.role === 'admin' ? 'bg-orange-500/10 text-orange-500' : 'bg-blue-500/10 text-blue-500'}`}>
                                                 {user.role === 'admin' ? <Shield size={20} /> : <User size={20} />}
                                             </div>
-                                            <div>
-                                                <h3 className="text-white font-bold leading-none">{user.username}</h3>
-                                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full mt-2 inline-block ${user.role === 'admin' ? 'bg-orange-500/10 text-orange-500' : 'bg-blue-500/10 text-blue-400'}`}>
-                                                    {user.role === 'admin' ? 'Administrador' : 'Usuário Padrão'}
+                                            <div className="min-w-0 flex-1">
+                                                <h3 className="text-white font-bold leading-none truncate" title={user.username}>{user.username}</h3>
+                                                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full mt-2 inline-block whitespace-nowrap ${user.role === 'admin' ? 'bg-orange-500/10 text-orange-500' :
+                                                    user.role === 'viewer' ? 'bg-emerald-500/10 text-emerald-400' :
+                                                        'bg-blue-500/10 text-blue-400'
+                                                    }`}>
+                                                    {user.role === 'admin' ? 'Administrador' :
+                                                        user.role === 'viewer' ? 'Visualizador' :
+                                                            'Usuário Padrão'}
                                                 </span>
                                             </div>
                                         </div>
@@ -280,7 +356,9 @@ export const Settings: React.FC = () => {
                                             </button>
                                         </div>
                                     </div>
-                                    <p className="text-xs text-zinc-500">ID: {user.id}</p>
+                                    <p className="text-[10px] text-zinc-500 truncate mt-2 select-all" title={user.id?.toString()}>
+                                        ID: {user.id}
+                                    </p>
                                 </div>
                             ))}
                         </div>
@@ -333,9 +411,8 @@ export const Settings: React.FC = () => {
                                             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                                             className="w-full bg-[#1a1614] border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-primary/50 transition-colors appearance-none"
                                         >
-                                            <option value="user">Usuário Padrão (Sem configurações)</option>
-                                            <option value="viewer">Visualizador (Apenas Pedidos, Histórico e Visualização de Cardápio)</option>
-                                            <option value="admin">Administrador (Total Acesso)</option>
+                                            <option value="viewer">Visualizador</option>
+                                            <option value="user">Usuário Padrão</option>
                                         </select>
                                     </div>
                                 </div>

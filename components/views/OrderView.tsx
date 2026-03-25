@@ -139,13 +139,15 @@ export const OrderView: React.FC<OrderViewProps> = ({
 
     const handleCreateOrder = async (clientName: string, clientPhone: string) => {
         try {
+            const clientId = localStorage.getItem('clientId');
             // 1. Create Order
             const { data: orderData, error: orderError } = await supabase
                 .from('orders')
                 .insert([{
                     client_name: clientName,
                     client_phone: clientPhone,
-                    total: 0 // Will be updated
+                    total: 0, // Will be updated
+                    client_id: clientId
                 }])
                 .select();
 
@@ -165,6 +167,7 @@ export const OrderView: React.FC<OrderViewProps> = ({
                     quantity: c.quantity,
                     menu_type: c.menuType,
                     menu_name: c.menuName,
+                    client_id: clientId
                 }));
 
                 const { error: itemsError } = await supabase

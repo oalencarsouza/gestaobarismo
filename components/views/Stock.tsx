@@ -122,11 +122,12 @@ export const Stock: React.FC = () => {
 
                 if (stockError) throw stockError;
             } else {
+                const clientId = localStorage.getItem('clientId');
                 // Insert Product
                 const { data: newProd, error: prodError } = await supabase
                     .from('products')
-                    .insert([productPayload])
-                    .select(); // REMOVED .single()
+                    .insert([{ ...productPayload, client_id: clientId }])
+                    .select();
 
                 if (prodError) throw prodError;
                 if (!newProd || newProd.length === 0) throw new Error('Erro ao criar produto');
@@ -139,7 +140,8 @@ export const Stock: React.FC = () => {
                         product_id: createdProduct.id,
                         quantity,
                         min_quantity,
-                        unit
+                        unit,
+                        client_id: clientId
                     }]);
 
                 if (stockError) throw stockError;

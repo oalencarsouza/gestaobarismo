@@ -211,9 +211,10 @@ export const AddMenuItemModal: React.FC<AddMenuItemModalProps> = ({
                 if (error) throw error;
                 showSuccess('Item atualizado com sucesso!');
             } else {
+                const clientId = localStorage.getItem('clientId');
                 const { error } = await supabase
                     .from('menu_items')
-                    .insert([payload]);
+                    .insert([{ ...payload, client_id: clientId }]);
 
                 if (error) throw error;
                 showSuccess('Item adicionado ao cardápio!');
